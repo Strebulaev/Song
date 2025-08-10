@@ -1,0 +1,10 @@
+<nav class="navbar">
+    <div class="navbar-brand" (click)="navigateTo('/')">
+      {{ 'Vocal Trainer' }}
+    </div>
+    <div class="navbar-links">
+      <a (click)="navigateTo('/upload')">Загрузить песню</a>
+      <a (click)="navigateTo('/library')">Библиотека</a>
+      <a (click)="navigateTo('/stats')">Статистика</a>
+    </div>
+  </nav>

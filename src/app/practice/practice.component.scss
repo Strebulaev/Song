@@ -1,0 +1,106 @@
+.practice-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    color: #333;
+  
+    h1 {
+      text-align: center;
+      color: #3f51b5;
+      margin-bottom: 2rem;
+    }
+  }
+  
+  .practice-content {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .note-display {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 2rem;
+  
+    .target-note, .user-note {
+      text-align: center;
+      flex: 1;
+  
+      h3 {
+        color: #666;
+        margin-bottom: 1rem;
+      }
+  
+      .note {
+        font-size: 3rem;
+        font-weight: bold;
+        color: #3f51b5;
+        height: 4rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+  
+        &.correct {
+          color: #4caf50;
+        }
+      }
+  
+      .cents {
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+        color: #666;
+      }
+    }
+  }
+  
+  .accuracy-display {
+    margin: 2rem 0;
+    text-align: center;
+  
+    .accuracy-value {
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+  
+    .accuracy-bar {
+      height: 10px;
+      background: #eee;
+      border-radius: 5px;
+      overflow: hidden;
+  
+      .fill {
+        height: 100%;
+        background: linear-gradient(to right, #f44336, #ffeb3b, #4caf50);
+        transition: width 0.3s ease;
+      }
+    }
+  }
+  
+  .controls {
+    text-align: center;
+    margin-top: 2rem;
+  
+    button {
+      padding: 12px 24px;
+      background: #3f51b5;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+  
+      &:hover {
+        background: #303f9f;
+      }
+  
+      &.recording {
+        background: #f44336;
+  
+        &:hover {
+          background: #d32f2f;
+        }
+      }
+    }
+  }

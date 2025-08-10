@@ -1,0 +1,147 @@
+.upload-container {
+    h1, h2 {
+      color: #303f9f; // Пример цвета для primary 700 (indigo)
+    }
+  }
+  
+.file-upload-wrapper {
+  position: relative;
+  width: 100%;
+  margin-bottom: 1.5rem;
+
+  input[type="file"] {
+      display: none;
+  }
+
+  .file-upload-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      border: 2px dashed #7986cb; // Пример цвета для indigo 300
+      border-radius: 8px;
+      background: rgba(#e8eaf6, 0.5); // Пример цвета для indigo 50
+      cursor: pointer;
+      transition: all 0.3s ease;
+
+      &:hover {
+      border-color: #3f51b5; // Пример цвета для indigo 500
+      background: rgba(#c5cae9, 0.5); // Пример цвета для indigo 100
+      }
+
+      i.material-icons {
+      margin-right: 0.5rem;
+      color: #3f51b5; // Пример цвета для indigo 500
+      }
+  }
+
+  .clear-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: transparent;
+      border: none;
+      color: #f44336; // Пример цвета для red 500
+      cursor: pointer;
+      padding: 0.25rem;
+      border-radius: 50%;
+
+      &:hover {
+        background: rgba(#f44336, 0.1);
+      }
+  }
+}
+
+.error-message {
+  color: #e53935; // Пример цвета для red 600
+  margin: 0.5rem 0;
+  text-align: center;
+}
+
+.analyze-btn, .practice-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 1rem;
+  margin-top: 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  i.material-icons {
+      margin-right: 0.5rem;
+  }
+
+  &.analyze-btn {
+      background: #3f51b5; // Пример цвета для indigo 500
+      color: white;
+
+      &:hover {
+          background: #3949ab; // Пример цвета для indigo 600
+      }
+
+      &:disabled {
+          background: #bdbdbd; // Пример цвета для grey 400
+          cursor: not-allowed;
+      }
+  }
+
+  &.practice-btn {
+      background: #4caf50; // Пример цвета для green 500
+      color: white;
+
+      &:hover {
+          background: #43a047; // Пример цвета для green 600
+      }
+  }
+}
+
+.analysis-result {
+  margin-top: 2rem;
+  padding: 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+
+  .result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin: 1.5rem 0;
+  }
+
+  .result-item {
+      label {
+          display: block;
+          font-weight: 500;
+          color: #757575; // Пример цвета для grey 600
+          margin-bottom: 0.25rem;
+      }
+
+      .notes-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+
+          .note-tag {
+              padding: 0.25rem 0.5rem;
+              background: #e8eaf6; // Пример цвета для indigo 50
+              border-radius: 4px;
+              font-size: 0.9rem;
+          }
+      }
+  }
+}
+
+.rotating {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

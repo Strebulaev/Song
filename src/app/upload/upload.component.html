@@ -1,0 +1,89 @@
+<div class="upload-container">
+    <h1>Анализ песни</h1>
+  
+    @if (!analysisResult) {
+      <div class="upload-box">
+        <div class="file-upload-wrapper">
+          <input 
+            type="file" 
+            id="file-upload" 
+            accept=".mp3,.wav,.ogg,.aac" 
+            (change)="onFileSelected($event)"
+            #fileInput
+          />
+          <label for="file-upload" class="file-upload-label">
+            @if (!selectedFile) {
+              <i class="material-icons">upload</i>
+              Выберите аудиофайл
+            } @else {
+              {{ selectedFile.name }}
+            }
+          </label>
+          @if (selectedFile) {
+            <button class="clear-btn" (click)="selectedFile = null; fileInput.value = ''">
+              <i class="material-icons">clear</i>
+            </button>
+          }
+        </div>
+  
+        @if (errorMessage) {
+          <div class="error-message">
+            {{ errorMessage }}
+          </div>
+        }
+  
+        <button 
+          class="analyze-btn" 
+          (click)="analyzeSong()" 
+          [disabled]="!selectedFile || isAnalyzing"
+        >
+          @if (!isAnalyzing) {
+            <i class="material-icons">analytics</i>
+            Анализировать
+          } @else {
+            <i class="material-icons rotating">autorenew</i>
+            Идёт анализ...
+          }
+        </button>
+      </div>
+    }
+  
+    @if (analysisResult && !isAnalyzing) {
+      <div class="analysis-result">
+        <h2>Результаты анализа</h2>
+        
+        <div class="result-grid">
+          <div class="result-item">
+            <label>Название:</label>
+            <span>{{ analysisResult.title }}</span>
+          </div>
+          
+          <div class="result-item">
+            <label>Тональность:</label>
+            <span>{{ analysisResult.key }}</span>
+          </div>
+          
+          <div class="result-item">
+            <label>BPM:</label>
+            <span>{{ analysisResult.bpm }}</span>
+          </div>
+          
+          <div class="result-item">
+            <label>Обнаруженные ноты:</label>
+            <div class="notes-list">
+              @for (note of analysisResult.notes; track note) {
+                <span class="note-tag">{{ note }}</span>
+              }
+            </div>
+          </div>
+        </div>
+  
+        <div class="actions">
+          <button class="practice-btn" (click)="startPractice()">
+            <i class="material-icons">mic</i>
+            Начать тренировку
+          </button>
+        </div>
+      </div>
+    }
+  </div>

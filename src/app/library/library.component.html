@@ -1,0 +1,14 @@
+<div class="library-container">
+    <h1>Библиотека песен</h1>
+    
+    <div class="song-list">
+      <div class="song-card" *ngFor="let song of songs" (click)="startPractice(song)">
+        <h3>{{ song.title }}</h3>
+        <p>{{ song.artist }}</p>
+        <div class="song-meta">
+          <span>BPM: {{ song.bpm }}</span>
+          <span>{{ song.key }}</span>
+        </div>
+      </div>
+    </div>
+  </div>

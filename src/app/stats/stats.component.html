@@ -1,0 +1,22 @@
+<div class="stats-container">
+    <h1>Ваша статистика</h1>
+  
+    <div class="overall-stats">
+      <div class="stat-card">
+        <h3>Средняя точность</h3>
+        <div class="stat-value">{{ averageAccuracy }}%</div>
+      </div>
+    </div>
+  
+    <h2>Последние сессии</h2>
+    <div class="sessions-list">
+      <div class="session" *ngFor="let session of sessions">
+        <div class="session-date">{{ session.date }}</div>
+        <div class="session-song">{{ session.songTitle }}</div>
+        <div class="session-accuracy">
+          <span [style.width.%]="session.accuracy" class="accuracy-bar"></span>
+          {{ session.accuracy }}%
+        </div>
+      </div>
+    </div>
+  </div>

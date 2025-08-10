@@ -1,0 +1,1408 @@
+--- Файл: D:\NoteStrike\src\index.html ---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>NoteStrike</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>
+
+
+--- Файл: D:\NoteStrike\src\main.ts ---
+
+import { bootstrapApplication } from '@angular/platform-browser';
+import { appConfig } from './app/app.config';
+import { AppComponent } from './app/app.component';
+
+bootstrapApplication(AppComponent, appConfig)
+  .catch((err) => console.error(err));
+
+
+--- Файл: D:\NoteStrike\src\styles.scss ---
+
+/* You can add global styles to this file, and also import other style files */
+
+
+--- Файл: D:\NoteStrike\src\app\app.component.html ---
+
+<div class="app-container">
+  <app-navbar></app-navbar>
+  <div class="content">
+    <router-outlet></router-outlet>
+  </div>
+</div>
+
+--- Файл: D:\NoteStrike\src\app\app.component.scss ---
+
+.app-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: #f5f5f5;
+  
+    .content {
+      flex: 1;
+      padding: 2rem;
+    }
+  }
+
+--- Файл: D:\NoteStrike\src\app\app.component.ts ---
+
+import { Component } from '@angular/core';
+import { RouterModule } from '@angular/router';
+import { NavbarComponent } from "./navbar/navbar.component";
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.scss'],
+  imports: [RouterModule, NavbarComponent]
+})
+export class AppComponent {
+  title = 'Vocal Trainer';
+}
+
+--- Файл: D:\NoteStrike\src\app\app.config.ts ---
+
+import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
+import { provideRouter } from '@angular/router';
+
+import { routes } from './app.routes';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideBrowserGlobalErrorListeners(),
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes)
+  ]
+};
+
+
+--- Файл: D:\NoteStrike\src\app\app.routes.ts ---
+
+import { Routes } from '@angular/router';
+import { HomeComponent } from './home/home.component';
+import { LibraryComponent } from './library/library.component';
+import { StatsComponent } from './stats/stats.component';
+import { PracticeComponent } from './practice/practice.component';
+import { UploadComponent } from './upload/upload.component';
+
+export const routes: Routes = 
+[
+    {
+        path: "", component: HomeComponent
+    },
+    {
+        path: "home", component: HomeComponent
+    },
+    {
+        path: "**", component: HomeComponent
+    },
+    {
+        path: "library", component: LibraryComponent
+    },
+    {
+        path: "stats", component: StatsComponent
+    },
+    {
+        path: "partice", component: PracticeComponent
+    },
+    {
+        path: "upload", component: UploadComponent
+    }
+];
+
+
+--- Файл: D:\NoteStrike\src\app\app.spec.ts ---
+
+import { TestBed } from '@angular/core/testing';
+import { App } from './app';
+
+describe('App', () => {
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [App],
+    }).compileComponents();
+  });
+
+  it('should create the app', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    expect(app).toBeTruthy();
+  });
+
+  it('should render title', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, NoteStrike');
+  });
+});
+
+
+--- Файл: D:\NoteStrike\src\app\home\home.component.html ---
+
+<div class="home-container">
+    <h1>Vocal Trainer</h1>
+    <p>Тренируй свой вокал, улучшай точность нот и становись лучше!</p>
+  
+    <div class="actions">
+      <button class="btn-primary" (click)="navigateToUpload()">
+        Загрузить свою песню
+      </button>
+      <button class="btn-secondary" (click)="navigateToLibrary()">
+        Выбрать из библиотеки
+      </button>
+    </div>
+  </div>
+
+--- Файл: D:\NoteStrike\src\app\home\home.component.scss ---
+
+.home-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    text-align: center;
+    padding: 20px;
+    background: linear-gradient(135deg, #1e1e2f, #2d2d42);
+    color: white;
+  
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+  
+    p {
+      font-size: 1.2rem;
+      margin-bottom: 2rem;
+      opacity: 0.8;
+    }
+  
+    .actions {
+      display: flex;
+      gap: 1rem;
+  
+      button {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: transform 0.2s, background 0.3s;
+  
+        &:hover {
+          transform: translateY(-2px);
+        }
+      }
+  
+      .btn-primary {
+        background: #4a6bff;
+        color: white;
+      }
+  
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+    }
+  }
+
+--- Файл: D:\NoteStrike\src\app\home\home.component.ts ---
+
+import { Component } from '@angular/core';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-home',
+  templateUrl: './home.component.html',
+  styleUrls: ['./home.component.scss']
+})
+export class HomeComponent {
+  constructor(private router: Router) {}
+
+  navigateToUpload() {
+    this.router.navigate(['/upload']);
+  }
+
+  navigateToLibrary() {
+    this.router.navigate(['/library']);
+  }
+}
+
+--- Файл: D:\NoteStrike\src\app\library\library.component.html ---
+
+<div class="library-container">
+    <h1>Библиотека песен</h1>
+    
+    <div class="song-list">
+      <div class="song-card" *ngFor="let song of songs" (click)="startPractice(song)">
+        <h3>{{ song.title }}</h3>
+        <p>{{ song.artist }}</p>
+        <div class="song-meta">
+          <span>BPM: {{ song.bpm }}</span>
+          <span>{{ song.key }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+--- Файл: D:\NoteStrike\src\app\library\library.component.scss ---
+
+.library-container {
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+  
+    h1 {
+      color: #4a6bff;
+      margin-bottom: 2rem;
+    }
+  
+    .song-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+  
+    .song-card {
+      padding: 1.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.2s, background 0.3s;
+  
+      &:hover {
+        transform: translateY(-4px);
+        background: rgba(74, 107, 255, 0.1);
+      }
+  
+      h3 {
+        margin: 0 0 0.5rem 0;
+        color: white;
+      }
+  
+      p {
+        margin: 0;
+        opacity: 0.7;
+      }
+  
+      .song-meta {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        opacity: 0.6;
+      }
+    }
+  }
+
+--- Файл: D:\NoteStrike\src\app\library\library.component.ts ---
+
+import { Component } from '@angular/core';
+import { Router } from '@angular/router';
+import { AudioService, AudioAnalysisResult } from '../services/audio.service';
+import { CommonModule } from '@angular/common';
+
+interface Song {
+  id: string;
+  title: string;
+  artist: string;
+  bpm: number;
+  key: string;
+  notes: string[];
+}
+
+@Component({
+  selector: 'app-library',
+  templateUrl: './library.component.html',
+  styleUrls: ['./library.component.scss'],
+  imports: [CommonModule]
+})
+export class LibraryComponent {
+  songs: Song[] = [
+    {
+      id: '1',
+      title: 'Пример песни 1',
+      artist: 'Исполнитель',
+      bpm: 120,
+      key: 'C Major',
+      notes: ['C4', 'D4', 'E4', 'F4', 'G4']
+    },
+    {
+      id: '2',
+      title: 'Пример песни 2',
+      artist: 'Другой исполнитель',
+      bpm: 90,
+      key: 'G Major',
+      notes: ['G4', 'A4', 'B4', 'C5', 'D5']
+    }
+  ];
+
+  constructor(
+    private router: Router,
+    private audioService: AudioService
+  ) {}
+
+  startPractice(song: Song): void {
+    this.router.navigate(['/practice'], { state: { songData: song } });
+  }
+
+  async analyzeAndAddSong(file: File): Promise<void> {
+    try {
+      const buffer = await this.audioService.decodeAudioFile(file);
+      const analysisResult = await this.audioService.analyzeAudioBuffer(buffer);
+      
+      const newSong: Song = {
+        id: Date.now().toString(),
+        title: file.name.replace(/\.[^/.]+$/, ""),
+        artist: 'Неизвестный исполнитель',
+        bpm: analysisResult.bpm,
+        key: analysisResult.key,
+        notes: analysisResult.notes
+      };
+
+      this.songs = [...this.songs, newSong];
+    } catch (error) {
+      console.error('Error analyzing song:', error);
+    }
+  }
+}
+
+--- Файл: D:\NoteStrike\src\app\models\song.model.ts ---
+
+export interface Song {
+    id: string;
+    title: string;
+    artist?: string;
+    bpm?: number;
+    key?: string;
+    notes: {
+      time: number;
+      pitch: string;
+      duration: number;
+    }[];
+    audioBuffer?: AudioBuffer;
+  }
+
+--- Файл: D:\NoteStrike\src\app\navbar\navbar.component.html ---
+
+<nav class="navbar">
+    <div class="navbar-brand" (click)="navigateTo('/')">
+      {{ 'Vocal Trainer' }}
+    </div>
+    <div class="navbar-links">
+      <a (click)="navigateTo('/upload')">Загрузить песню</a>
+      <a (click)="navigateTo('/library')">Библиотека</a>
+      <a (click)="navigateTo('/stats')">Статистика</a>
+    </div>
+  </nav>
+
+--- Файл: D:\NoteStrike\src\app\navbar\navbar.component.scss ---
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: #2d2d42;
+    color: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  
+    .navbar-brand {
+      font-size: 1.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      color: #4a6bff;
+    }
+  
+    .navbar-links {
+      display: flex;
+      gap: 1.5rem;
+  
+      a {
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        transition: background 0.3s;
+  
+        &:hover {
+          background: rgba(74, 107, 255, 0.2);
+        }
+      }
+    }
+  }
+
+--- Файл: D:\NoteStrike\src\app\navbar\navbar.component.ts ---
+
+import { Component } from '@angular/core';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-navbar',
+  templateUrl: './navbar.component.html',
+  styleUrls: ['./navbar.component.scss']
+})
+export class NavbarComponent {
+  constructor(private router: Router) {}
+
+  navigateTo(route: string) {
+    this.router.navigate([route]);
+  }
+}
+
+--- Файл: D:\NoteStrike\src\app\practice\practice.component.html ---
+
+<div class="practice-container">
+    <h1>Тренировка: {{ songData ? songData.title : 'Выбранная песня' }}</h1>
+    
+    <div class="practice-content">
+      <div class="note-display">
+        <div class="target-note">
+          <h3>Целевая нота</h3>
+          <div class="note">
+            @if (currentSongNotes[currentNoteIndex]) {
+              {{ currentSongNotes[currentNoteIndex].note }}
+            } @else {
+              --
+            }
+          </div>
+        </div>
+        
+        <div class="user-note">
+          <h3>Ваша нота</h3>
+          <div class="note" [class.correct]="userPitch?.note === currentSongNotes[currentNoteIndex].note">
+            {{ userPitch?.note || '--' }}
+          </div>
+          <div class="cents" *ngIf="userPitch?.cents">
+            Отклонение: {{ userPitch?.cents }} центов
+          </div>
+        </div>
+      </div>
+  
+      <div class="accuracy-display">
+        <div class="accuracy-value">Точность: {{ accuracy }}%</div>
+        <div class="accuracy-bar">
+          <div class="fill" [style.width.%]="accuracy"></div>
+        </div>
+      </div>
+  
+      <div class="controls">
+        <button (click)="toggleRecording()" [class.recording]="isRecording">
+          {{ isRecording ? 'Остановить запись' : 'Начать запись' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+--- Файл: D:\NoteStrike\src\app\practice\practice.component.scss ---
+
+.practice-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    color: #333;
+  
+    h1 {
+      text-align: center;
+      color: #3f51b5;
+      margin-bottom: 2rem;
+    }
+  }
+  
+  .practice-content {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .note-display {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 2rem;
+  
+    .target-note, .user-note {
+      text-align: center;
+      flex: 1;
+  
+      h3 {
+        color: #666;
+        margin-bottom: 1rem;
+      }
+  
+      .note {
+        font-size: 3rem;
+        font-weight: bold;
+        color: #3f51b5;
+        height: 4rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+  
+        &.correct {
+          color: #4caf50;
+        }
+      }
+  
+      .cents {
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+        color: #666;
+      }
+    }
+  }
+  
+  .accuracy-display {
+    margin: 2rem 0;
+    text-align: center;
+  
+    .accuracy-value {
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+  
+    .accuracy-bar {
+      height: 10px;
+      background: #eee;
+      border-radius: 5px;
+      overflow: hidden;
+  
+      .fill {
+        height: 100%;
+        background: linear-gradient(to right, #f44336, #ffeb3b, #4caf50);
+        transition: width 0.3s ease;
+      }
+    }
+  }
+  
+  .controls {
+    text-align: center;
+    margin-top: 2rem;
+  
+    button {
+      padding: 12px 24px;
+      background: #3f51b5;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+  
+      &:hover {
+        background: #303f9f;
+      }
+  
+      &.recording {
+        background: #f44336;
+  
+        &:hover {
+          background: #d32f2f;
+        }
+      }
+    }
+  }
+
+--- Файл: D:\NoteStrike\src\app\practice\practice.component.ts ---
+
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { AudioService, PitchDetectionResult } from '../services/audio.service';
+import { ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
+
+interface SongNote {
+  time: number;
+  note: string;
+  duration: number;
+}
+
+interface SongData {
+  title: string;
+  notes: string[];
+  bpm?: number;
+  key?: string;
+}
+
+@Component({
+  selector: 'app-practice',
+  templateUrl: './practice.component.html',
+  styleUrls: ['./practice.component.scss'],
+  imports: [CommonModule]
+})
+export class PracticeComponent implements OnInit, OnDestroy {
+  currentSongNotes: SongNote[] = [];
+  currentNoteIndex = 0;
+  userPitch: PitchDetectionResult | null = null;
+  accuracy = 0;
+  isRecording = false;
+  songData: SongData | null = null;
+
+  private pitchSubscription!: Subscription;
+
+  constructor(
+    private audioService: AudioService,
+    private route: ActivatedRoute
+  ) {}
+
+  ngOnInit(): void {
+    this.songData = history.state.songData;
+    if (this.songData?.notes) {
+      this.currentSongNotes = this.songData.notes.map((note: string, index: number) => ({
+        note,
+        time: index * 0.5,
+        duration: 0.5
+      }));
+    }
+  }
+
+  toggleRecording(): void {
+    this.isRecording = !this.isRecording;
+
+    if (this.isRecording) {
+      this.startPitchDetection();
+    } else {
+      this.stopPitchDetection();
+    }
+  }
+
+  private startPitchDetection(): void {
+    this.pitchSubscription = this.audioService.pitchDetection$.subscribe(
+      (result: PitchDetectionResult) => {
+        this.userPitch = result;
+        this.checkAccuracy();
+      },
+      (error) => {
+        console.error('Pitch detection error:', error);
+        this.isRecording = false;
+      }
+    );
+
+    this.audioService.startPitchDetection().catch(error => {
+      console.error('Error starting pitch detection:', error);
+      this.isRecording = false;
+    });
+  }
+
+  private stopPitchDetection(): void {
+    this.pitchSubscription?.unsubscribe();
+    this.audioService.stopPitchDetection();
+    this.userPitch = null;
+  }
+
+  private checkAccuracy(): void {
+    if (!this.userPitch?.note || !this.currentSongNotes[this.currentNoteIndex]) return;
+
+    const currentTargetNote = this.currentSongNotes[this.currentNoteIndex].note;
+    
+    if (this.userPitch.note === currentTargetNote) {
+      this.accuracy = 100 - Math.min(100, Math.abs(this.userPitch.cents) / 2);
+      this.currentNoteIndex = (this.currentNoteIndex + 1) % this.currentSongNotes.length;
+    } else {
+      this.accuracy = 0;
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.stopPitchDetection();
+  }
+}
+
+--- Файл: D:\NoteStrike\src\app\services\audio.service.ts ---
+
+import { Injectable } from '@angular/core';
+import { Subject } from 'rxjs';
+
+export interface PitchDetectionResult {
+  note: string;
+  cents: number;
+  frequency: number;
+}
+
+export interface AudioAnalysisResult {
+  notes: string[];
+  bpm: number;
+  key: string;
+  audioBuffer?: AudioBuffer;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AudioService {
+  private audioContext: AudioContext;
+  private analyser: AnalyserNode;
+  private microphone: MediaStreamAudioSourceNode | null = null;
+  private scriptProcessor: ScriptProcessorNode | null = null;
+  private pitchDetectionSubject = new Subject<PitchDetectionResult>();
+  private notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  private isRecording = false;
+
+  constructor() {
+    this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    this.analyser = this.audioContext.createAnalyser();
+    this.analyser.fftSize = 4096;
+  }
+
+  get pitchDetection$() {
+    return this.pitchDetectionSubject.asObservable();
+  }
+
+  async decodeAudioFile(file: File): Promise<AudioBuffer> {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      return await this.audioContext.decodeAudioData(arrayBuffer);
+    } catch (error) {
+      console.error('Error decoding audio file:', error);
+      throw error;
+    }
+  }
+  private async detectNotes(buffer: AudioBuffer): Promise<string[]> {
+    const notes: string[] = [];
+    const frameSize = 2048;
+    const stepSize = Math.floor(frameSize / 4);
+
+    for (let i = 0; i < buffer.length - frameSize; i += stepSize) {
+      const slice = buffer.getChannelData(0).slice(i, i + frameSize);
+      const frequency = this.getDominantFrequency(new Float32Array(slice));
+      if (frequency > 0) {
+        const noteInfo = this.frequencyToNote(frequency);
+        notes.push(noteInfo.note);
+      }
+    }
+
+    return notes;
+  }
+
+  private detectKey(notes: string[]): string {
+    const noteCounts: Record<string, number> = {};
+    notes.forEach(note => {
+      const baseNote = note.replace(/\d+$/, '');
+      noteCounts[baseNote] = (noteCounts[baseNote] || 0) + 1;
+    });
+
+    let maxCount = 0;
+    let keyNote = 'C';
+    for (const note in noteCounts) {
+      if (noteCounts[note] > maxCount) {
+        maxCount = noteCounts[note];
+        keyNote = note;
+      }
+    }
+
+    return keyNote + ' Major';
+  }
+  async analyzeAudioBuffer(buffer: AudioBuffer): Promise<AudioAnalysisResult> {
+    const notes = await this.detectNotes(buffer);
+    const bpm = this.detectBPM(buffer);
+    const key = this.detectKey(notes);
+
+    return {
+      notes: [...new Set(notes)],
+      bpm,
+      key,
+      audioBuffer: buffer
+    };
+  }
+
+  async startPitchDetection(): Promise<void> {
+    if (this.isRecording) return;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.microphone = this.audioContext.createMediaStreamSource(stream);
+      this.microphone.connect(this.analyser);
+
+      this.scriptProcessor = this.audioContext.createScriptProcessor(4096, 1, 1);
+      this.scriptProcessor.connect(this.audioContext.destination);
+
+      this.scriptProcessor.onaudioprocess = () => {
+        const frequencies = new Float32Array(this.analyser.frequencyBinCount);
+        this.analyser.getFloatFrequencyData(frequencies);
+        const result = this.detectPitch(frequencies);
+        this.pitchDetectionSubject.next(result);
+      };
+
+      this.isRecording = true;
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      throw error;
+    }
+  }
+
+  stopPitchDetection(): void {
+    if (!this.isRecording) return;
+    
+    this.scriptProcessor?.disconnect();
+    this.microphone?.disconnect();
+    this.scriptProcessor = null;
+    this.microphone = null;
+    this.isRecording = false;
+  }
+
+  private detectPitch(frequencies: Float32Array): PitchDetectionResult {
+    const frequency = this.getDominantFrequency(frequencies);
+    if (frequency <= 0) {
+      return { note: '', cents: 0, frequency: 0 };
+    }
+
+    const noteInfo = this.frequencyToNote(frequency);
+    return {
+      note: noteInfo.note,
+      cents: noteInfo.cents,
+      frequency
+    };
+  }
+
+  private getDominantFrequency(frequencies: Float32Array): number {
+    let maxIndex = 0;
+    let maxValue = -Infinity;
+
+    for (let i = 0; i < frequencies.length; i++) {
+      if (frequencies[i] > maxValue && frequencies[i] > -90) {
+        maxValue = frequencies[i];
+        maxIndex = i;
+      }
+    }
+
+    return maxIndex * this.audioContext.sampleRate / this.analyser.fftSize;
+  }
+
+  private frequencyToNote(frequency: number): { note: string; cents: number } {
+    const A4 = 440;
+    const C0 = A4 * Math.pow(2, -4.75);
+    const noteNames = this.notes;
+
+    if (frequency <= 0) return { note: '', cents: 0 };
+
+    const halfSteps = Math.round(12 * Math.log2(frequency / C0));
+    const octave = Math.floor(halfSteps / 12);
+    const noteIndex = halfSteps % 12;
+    const note = noteNames[noteIndex] + octave;
+
+    // Calculate cents deviation
+    const expectedFrequency = C0 * Math.pow(2, halfSteps / 12);
+    const cents = Math.floor(1200 * Math.log2(frequency / expectedFrequency));
+
+    return { note, cents };
+  }
+
+  private detectBPM(buffer: AudioBuffer): number {
+    // Реализация простого BPM детектора
+    const channelData = buffer.getChannelData(0);
+    const threshold = 0.3;
+    let lastPeak = 0;
+    const peaks: number[] = [];
+
+    for (let i = 1; i < channelData.length - 1; i++) {
+      if (channelData[i] > threshold && 
+          channelData[i] > channelData[i - 1] && 
+          channelData[i] > channelData[i + 1]) {
+        if (i - lastPeak > 1000) { // Минимальный интервал между пиками
+          peaks.push(i);
+          lastPeak = i;
+        }
+      }
+    }
+
+    if (peaks.length < 2) return 120; // Значение по умолчанию
+
+    const intervals = [];
+    for (let i = 1; i < peaks.length; i++) {
+      intervals.push(peaks[i] - peaks[i - 1]);
+    }
+
+    const averageInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+    return Math.round((60 * buffer.sampleRate) / averageInterval);
+  }
+}
+
+--- Файл: D:\NoteStrike\src\app\services\song.service.ts ---
+
+import { Injectable } from '@angular/core';
+import { Song } from '../models/song.model';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class SongService {
+  private songs: Song[] = [];
+
+  addSong(song: Song) {
+    this.songs.push(song);
+  }
+
+  getSongs(): Song[] {
+    return this.songs;
+  }
+}
+
+--- Файл: D:\NoteStrike\src\app\stats\stats.component.html ---
+
+<div class="stats-container">
+    <h1>Ваша статистика</h1>
+  
+    <div class="overall-stats">
+      <div class="stat-card">
+        <h3>Средняя точность</h3>
+        <div class="stat-value">{{ averageAccuracy }}%</div>
+      </div>
+    </div>
+  
+    <h2>Последние сессии</h2>
+    <div class="sessions-list">
+      <div class="session" *ngFor="let session of sessions">
+        <div class="session-date">{{ session.date }}</div>
+        <div class="session-song">{{ session.songTitle }}</div>
+        <div class="session-accuracy">
+          <span [style.width.%]="session.accuracy" class="accuracy-bar"></span>
+          {{ session.accuracy }}%
+        </div>
+      </div>
+    </div>
+  </div>
+
+--- Файл: D:\NoteStrike\src\app\stats\stats.component.scss ---
+
+.stats-container {
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+  
+    h1, h2 {
+      color: #4a6bff;
+    }
+  
+    .overall-stats {
+      display: flex;
+      gap: 1.5rem;
+      margin: 2rem 0;
+  
+      .stat-card {
+        flex: 1;
+        padding: 1.5rem;
+        background: rgba(74, 107, 255, 0.1);
+        border-radius: 12px;
+        text-align: center;
+  
+        h3 {
+          margin: 0 0 0.5rem 0;
+          font-size: 1rem;
+          opacity: 0.8;
+        }
+  
+        .stat-value {
+          font-size: 2rem;
+          font-weight: bold;
+        }
+      }
+    }
+  
+    .sessions-list {
+      margin-top: 1.5rem;
+  
+      .session {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+  
+        .session-date {
+          width: 120px;
+          opacity: 0.7;
+        }
+  
+        .session-song {
+          flex: 1;
+        }
+  
+        .session-accuracy {
+          width: 100px;
+          position: relative;
+          text-align: right;
+  
+          .accuracy-bar {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: rgba(74, 107, 255, 0.2);
+            z-index: -1;
+            border-radius: 4px;
+          }
+        }
+      }
+    }
+  }
+
+--- Файл: D:\NoteStrike\src\app\stats\stats.component.ts ---
+
+import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
+
+interface Session {
+  date: string;
+  songTitle: string;
+  accuracy: number;
+}
+
+@Component({
+  selector: 'app-stats',
+  templateUrl: './stats.component.html',
+  styleUrls: ['./stats.component.scss'],
+  imports: [CommonModule]
+})
+export class StatsComponent {
+  sessions: Session[] = [
+    { date: '2023-10-01', songTitle: 'Imagine', accuracy: 78 },
+    { date: '2023-10-02', songTitle: 'Bohemian Rhapsody', accuracy: 65 },
+    { date: '2023-10-03', songTitle: 'Yesterday', accuracy: 82 },
+  ];
+
+  averageAccuracy = this.calculateAverage();
+
+  calculateAverage(): number {
+    const sum = this.sessions.reduce((acc, session) => acc + session.accuracy, 0);
+    return Math.round(sum / this.sessions.length);
+  }
+}
+
+--- Файл: D:\NoteStrike\src\app\upload\upload.component.html ---
+
+<div class="upload-container">
+    <h1>Анализ песни</h1>
+  
+    @if (!analysisResult) {
+      <div class="upload-box">
+        <div class="file-upload-wrapper">
+          <input 
+            type="file" 
+            id="file-upload" 
+            accept=".mp3,.wav,.ogg,.aac" 
+            (change)="onFileSelected($event)"
+            #fileInput
+          />
+          <label for="file-upload" class="file-upload-label">
+            @if (!selectedFile) {
+              <i class="material-icons">upload</i>
+              Выберите аудиофайл
+            } @else {
+              {{ selectedFile.name }}
+            }
+          </label>
+          @if (selectedFile) {
+            <button class="clear-btn" (click)="selectedFile = null; fileInput.value = ''">
+              <i class="material-icons">clear</i>
+            </button>
+          }
+        </div>
+  
+        @if (errorMessage) {
+          <div class="error-message">
+            {{ errorMessage }}
+          </div>
+        }
+  
+        <button 
+          class="analyze-btn" 
+          (click)="analyzeSong()" 
+          [disabled]="!selectedFile || isAnalyzing"
+        >
+          @if (!isAnalyzing) {
+            <i class="material-icons">analytics</i>
+            Анализировать
+          } @else {
+            <i class="material-icons rotating">autorenew</i>
+            Идёт анализ...
+          }
+        </button>
+      </div>
+    }
+  
+    @if (analysisResult && !isAnalyzing) {
+      <div class="analysis-result">
+        <h2>Результаты анализа</h2>
+        
+        <div class="result-grid">
+          <div class="result-item">
+            <label>Название:</label>
+            <span>{{ analysisResult.title }}</span>
+          </div>
+          
+          <div class="result-item">
+            <label>Тональность:</label>
+            <span>{{ analysisResult.key }}</span>
+          </div>
+          
+          <div class="result-item">
+            <label>BPM:</label>
+            <span>{{ analysisResult.bpm }}</span>
+          </div>
+          
+          <div class="result-item">
+            <label>Обнаруженные ноты:</label>
+            <div class="notes-list">
+              @for (note of analysisResult.notes; track note) {
+                <span class="note-tag">{{ note }}</span>
+              }
+            </div>
+          </div>
+        </div>
+  
+        <div class="actions">
+          <button class="practice-btn" (click)="startPractice()">
+            <i class="material-icons">mic</i>
+            Начать тренировку
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+--- Файл: D:\NoteStrike\src\app\upload\upload.component.scss ---
+
+@import '~@angular/material/theming';
+
+.upload-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  color: #333;
+
+  h1, h2 {
+    color: mat-color($mat-indigo, 700);
+    text-align: center;
+  }
+}
+
+.file-upload-wrapper {
+  position: relative;
+  width: 100%;
+  margin-bottom: 1.5rem;
+
+  input[type="file"] {
+    display: none;
+  }
+
+  .file-upload-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    border: 2px dashed mat-color($mat-indigo, 300);
+    border-radius: 8px;
+    background: rgba(mat-color($mat-indigo, 50), 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-color: mat-color($mat-indigo, 500);
+      background: rgba(mat-color($mat-indigo, 100), 0.5);
+    }
+
+    i.material-icons {
+      margin-right: 0.5rem;
+      color: mat-color($mat-indigo, 500);
+    }
+  }
+
+  .clear-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: transparent;
+    border: none;
+    color: mat-color($mat-red, 500);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 50%;
+
+    &:hover {
+      background: rgba(mat-color($mat-red, 500), 0.1);
+    }
+  }
+}
+
+.error-message {
+  color: mat-color($mat-red, 600);
+  margin: 0.5rem 0;
+  text-align: center;
+}
+
+.analyze-btn, .practice-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 1rem;
+  margin-top: 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  i.material-icons {
+    margin-right: 0.5rem;
+  }
+
+  &.analyze-btn {
+    background: mat-color($mat-indigo, 500);
+    color: white;
+
+    &:hover {
+      background: mat-color($mat-indigo, 600);
+    }
+
+    &:disabled {
+      background: mat-color($mat-grey, 400);
+      cursor: not-allowed;
+    }
+  }
+
+  &.practice-btn {
+    background: mat-color($mat-green, 500);
+    color: white;
+
+    &:hover {
+      background: mat-color($mat-green, 600);
+    }
+  }
+}
+
+.analysis-result {
+  margin-top: 2rem;
+  padding: 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  .result-item {
+    label {
+      display: block;
+      font-weight: 500;
+      color: mat-color($mat-grey, 600);
+      margin-bottom: 0.25rem;
+    }
+
+    .notes-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+
+      .note-tag {
+        padding: 0.25rem 0.5rem;
+        background: mat-color($mat-indigo, 50);
+        border-radius: 4px;
+        font-size: 0.9rem;
+      }
+    }
+  }
+}
+
+.rotating {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+--- Файл: D:\NoteStrike\src\app\upload\upload.component.ts ---
+
+import { Component } from '@angular/core';
+import { Router } from '@angular/router';
+import { AudioService, AudioAnalysisResult } from '../services/audio.service';
+import { CommonModule } from '@angular/common';
+
+interface UploadAnalysisResult extends AudioAnalysisResult {
+  title: string;
+}
+
+@Component({
+  selector: 'app-upload',
+  templateUrl: './upload.component.html',
+  styleUrls: ['./upload.component.scss'],
+  imports: [CommonModule]
+})
+export class UploadComponent {
+  selectedFile: File | null = null;
+  isAnalyzing = false;
+  analysisResult: UploadAnalysisResult | null = null;
+  errorMessage: string | null = null;
+
+  constructor(
+    private audioService: AudioService,
+    private router: Router
+  ) {}
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedFile = input.files[0];
+      this.errorMessage = null;
+    }
+  }
+
+  async analyzeSong(): Promise<void> {
+    if (!this.selectedFile) {
+      this.errorMessage = 'Пожалуйста, выберите файл';
+      return;
+    }
+
+    this.isAnalyzing = true;
+    this.errorMessage = null;
+
+    try {
+      const buffer = await this.audioService.decodeAudioFile(this.selectedFile);
+      const analysisResult = await this.audioService.analyzeAudioBuffer(buffer);
+      
+      this.analysisResult = {
+        ...analysisResult,
+        title: this.selectedFile.name.replace(/\.[^/.]+$/, "")
+      };
+    } catch (error) {
+      console.error('Analysis error:', error);
+      this.errorMessage = 'Ошибка при анализе файла. Пожалуйста, попробуйте другой файл.';
+    } finally {
+      this.isAnalyzing = false;
+    }
+  }
+
+  startPractice(): void {
+    if (this.analysisResult) {
+      this.router.navigate(['/practice'], { 
+        state: { 
+          songData: {
+            title: this.analysisResult.title,
+            notes: this.analysisResult.notes,
+            bpm: this.analysisResult.bpm,
+            key: this.analysisResult.key
+          }
+        }
+      });
+    }
+  }
+}
+

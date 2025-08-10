@@ -1,0 +1,41 @@
+<div class="practice-container">
+    <h1>Тренировка: {{ songData ? songData.title : 'Выбранная песня' }}</h1>
+    
+    <div class="practice-content">
+      <div class="note-display">
+        <div class="target-note">
+          <h3>Целевая нота</h3>
+          <div class="note">
+            @if (currentSongNotes[currentNoteIndex]) {
+              {{ currentSongNotes[currentNoteIndex].note }}
+            } @else {
+              --
+            }
+          </div>
+        </div>
+        
+        <div class="user-note">
+          <h3>Ваша нота</h3>
+          <div class="note" [class.correct]="userPitch?.note === currentSongNotes[currentNoteIndex].note">
+            {{ userPitch?.note || '--' }}
+          </div>
+          <div class="cents" *ngIf="userPitch?.cents">
+            Отклонение: {{ userPitch?.cents }} центов
+          </div>
+        </div>
+      </div>
+  
+      <div class="accuracy-display">
+        <div class="accuracy-value">Точность: {{ accuracy }}%</div>
+        <div class="accuracy-bar">
+          <div class="fill" [style.width.%]="accuracy"></div>
+        </div>
+      </div>
+  
+      <div class="controls">
+        <button (click)="toggleRecording()" [class.recording]="isRecording">
+          {{ isRecording ? 'Остановить запись' : 'Начать запись' }}
+        </button>
+      </div>
+    </div>
+  </div>

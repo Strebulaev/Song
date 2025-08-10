@@ -1,0 +1,72 @@
+.stats-container {
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+  
+    h1, h2 {
+      color: #4a6bff;
+    }
+  
+    .overall-stats {
+      display: flex;
+      gap: 1.5rem;
+      margin: 2rem 0;
+  
+      .stat-card {
+        flex: 1;
+        padding: 1.5rem;
+        background: rgba(74, 107, 255, 0.1);
+        border-radius: 12px;
+        text-align: center;
+  
+        h3 {
+          margin: 0 0 0.5rem 0;
+          font-size: 1rem;
+          opacity: 0.8;
+        }
+  
+        .stat-value {
+          font-size: 2rem;
+          font-weight: bold;
+        }
+      }
+    }
+  
+    .sessions-list {
+      margin-top: 1.5rem;
+  
+      .session {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+  
+        .session-date {
+          width: 120px;
+          opacity: 0.7;
+        }
+  
+        .session-song {
+          flex: 1;
+        }
+  
+        .session-accuracy {
+          width: 100px;
+          position: relative;
+          text-align: right;
+  
+          .accuracy-bar {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: rgba(74, 107, 255, 0.2);
+            z-index: -1;
+            border-radius: 4px;
+          }
+        }
+      }
+    }
+  }
