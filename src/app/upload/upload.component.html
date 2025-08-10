@@ -72,9 +72,14 @@
             <label>Обнаруженные ноты:</label>
             <div class="notes-list">
               @for (note of analysisResult.notes; track note) {
-                <span class="note-tag">{{ note }}</span>
+                  <div class="note">
+                      {{ note.pitch }} 
+                      @if (note.time !== undefined) {
+                          (время: {{ note.time | number:'1.2-2' }} сек)
+                      }
+                  </div>
               }
-            </div>
+          </div>
           </div>
         </div>
   

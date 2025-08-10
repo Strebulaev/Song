@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 
-interface Session {
+interface PracticeSession {
+  songId: string;
   date: string;
-  songTitle: string;
   accuracy: number;
+  songTitle?: string;
 }
 
 @Component({
@@ -14,16 +15,39 @@ interface Session {
   imports: [CommonModule]
 })
 export class StatsComponent {
-  sessions: Session[] = [
-    { date: '2023-10-01', songTitle: 'Imagine', accuracy: 78 },
-    { date: '2023-10-02', songTitle: 'Bohemian Rhapsody', accuracy: 65 },
-    { date: '2023-10-03', songTitle: 'Yesterday', accuracy: 82 },
-  ];
+  sessions: PracticeSession[] = [];
+  averageAccuracy = 0;
 
-  averageAccuracy = this.calculateAverage();
+  constructor() {
+    this.loadSessions();
+  }
 
-  calculateAverage(): number {
+  private loadSessions(): void {
+    const sessionsData = localStorage.getItem('practiceSessions');
+    const songsData = localStorage.getItem('songs');
+    
+    const sessions: PracticeSession[] = sessionsData ? JSON.parse(sessionsData) : [];
+    const songs: any[] = songsData ? JSON.parse(songsData) : [];
+
+    this.sessions = sessions.map(session => {
+      const song = songs.find(s => s.id === session.songId);
+      return {
+        ...session,
+        date: new Date(session.date).toLocaleDateString(),
+        songTitle: song?.title || 'Unknown Song'
+      };
+    }).slice(0, 10);
+
+    this.calculateAverage();
+  }
+
+  private calculateAverage(): void {
+    if (this.sessions.length === 0) {
+      this.averageAccuracy = 0;
+      return;
+    }
+
     const sum = this.sessions.reduce((acc, session) => acc + session.accuracy, 0);
-    return Math.round(sum / this.sessions.length);
+    this.averageAccuracy = Math.round(sum / this.sessions.length);
   }
 }

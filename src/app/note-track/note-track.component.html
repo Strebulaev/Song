@@ -1,0 +1,22 @@
+<div class="note-track-container">
+    <div class="note-track">
+      <div class="notes-container">
+        @for (note of notes; track note.pitch + note.time) {
+          <div class="note" 
+               [style.left.%]="(note.time / totalDuration) * 100"
+               [style.width.%]="(note.duration / totalDuration) * 100"
+               [class.active]="activeNotes.includes(note)"
+               [class.hit]="hitWindows.get(note.pitch)">
+            {{ note.pitch }}
+          </div>
+        }
+      </div>
+      
+      <div class="indicator" 
+           [@moveIndicator]="{
+             value: animationState,
+             params: { duration: totalDuration * 1000 }
+           }">
+      </div>
+    </div>
+  </div>

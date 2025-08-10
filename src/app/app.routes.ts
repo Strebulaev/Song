@@ -4,6 +4,7 @@ import { LibraryComponent } from './library/library.component';
 import { StatsComponent } from './stats/stats.component';
 import { PracticeComponent } from './practice/practice.component';
 import { UploadComponent } from './upload/upload.component';
+import { MusicAnalyzerComponent } from './music-analyzer/music-analyzer.component';
 
 export const routes: Routes = [
     {
@@ -23,6 +24,10 @@ export const routes: Routes = [
     },
     {
         path: "upload", component: UploadComponent
+    },
+    {
+        path: 'analyzer',
+        component: MusicAnalyzerComponent
     },
     {
         path: "**", component: HomeComponent

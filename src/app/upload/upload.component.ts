@@ -1,11 +1,7 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
-import { AudioService, AudioAnalysisResult } from '../services/audio.service';
+import { AudioService } from '../services/audio.service';
 import { CommonModule } from '@angular/common';
-
-interface UploadAnalysisResult extends AudioAnalysisResult {
-  title: string;
-}
 
 @Component({
   selector: 'app-upload',
@@ -16,59 +12,82 @@ interface UploadAnalysisResult extends AudioAnalysisResult {
 export class UploadComponent {
   selectedFile: File | null = null;
   isAnalyzing = false;
-  analysisResult: UploadAnalysisResult | null = null;
+  analysisResult: any = null;
   errorMessage: string | null = null;
+  audioBuffer: AudioBuffer | null = null;
 
   constructor(
     private audioService: AudioService,
     private router: Router
   ) {}
 
-  onFileSelected(event: Event): void {
+  async onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       this.selectedFile = input.files[0];
       this.errorMessage = null;
+      this.analysisResult = null;
     }
   }
 
-  async analyzeSong(): Promise<void> {
+  async analyzeSong() {
     if (!this.selectedFile) {
-      this.errorMessage = 'Пожалуйста, выберите файл';
+      this.errorMessage = 'Please select a file';
       return;
     }
 
     this.isAnalyzing = true;
     this.errorMessage = null;
 
-    try {
+    if (!this.selectedFile) {
+      throw new Error('No file selected');
+  }
+  
+  try {
       const buffer = await this.audioService.decodeAudioFile(this.selectedFile);
-      const analysisResult = await this.audioService.analyzeAudioBuffer(buffer);
-      
-      this.analysisResult = {
-        ...analysisResult,
-        title: this.selectedFile.name.replace(/\.[^/.]+$/, "")
-      };
-    } catch (error) {
-      console.error('Analysis error:', error);
-      this.errorMessage = 'Ошибка при анализе файла. Пожалуйста, попробуйте другой файл.';
-    } finally {
+      if (!buffer) {
+          throw new Error('Failed to decode audio file');
+      }
+      this.audioBuffer = buffer;
+      this.analysisResult = await this.audioService.analyzeAudioBuffer(buffer, this.selectedFile.name);
+  } catch (error) {
+      console.error('Error processing audio file:', error);
+      this.audioBuffer = null;
+      this.analysisResult = null;
+      throw error; // или обработка ошибки по-другому
+  } finally {
       this.isAnalyzing = false;
     }
   }
 
+  private audioStorage: {[key: string]: AudioBuffer} = {};
+
   startPractice(): void {
-    if (this.analysisResult) {
-      this.router.navigate(['/practice'], { 
-        state: { 
-          songData: {
+    // Проверяем, что анализ завершен и аудио буфер доступен
+    if (this.analysisResult && this.audioBuffer && this.selectedFile) {
+        // Создаем уникальный ID для песни
+        const songId = Date.now().toString();
+        
+        // Сохраняем аудио буфер в сервисе
+        this.audioService.storeAudioBuffer(songId, this.audioBuffer);
+        
+        // Формируем полные данные песни для передачи на страницу практики
+        const songData = {
+            id: songId,
             title: this.analysisResult.title,
-            notes: this.analysisResult.notes,
+            artist: this.analysisResult.artist || 'Неизвестный исполнитель',
             bpm: this.analysisResult.bpm,
-            key: this.analysisResult.key
-          }
-        }
-      });
+            key: this.analysisResult.key,
+            notes: this.analysisResult.notes,
+            audioUrl: URL.createObjectURL(this.selectedFile) // Создаем временную ссылку на файл
+        };
+        
+        // Переходим на страницу практики с передачей данных
+        this.router.navigate(['/practice'], { 
+            state: { songData }
+        });
+    } else {
+        console.error('Не удалось начать практику: отсутствуют данные анализа или аудио файл');
     }
   }
 }

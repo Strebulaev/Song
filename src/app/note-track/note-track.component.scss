@@ -1,0 +1,52 @@
+.note-track-container {
+    width: 100%;
+    padding: 20px;
+    background: #2d2d42;
+    border-radius: 8px;
+  }
+  
+  .note-track {
+    position: relative;
+    height: 80px;
+    background: #1e1e2f;
+    border-radius: 4px;
+    overflow: hidden;
+    
+    .notes-container {
+      position: relative;
+      height: 100%;
+    }
+    
+    .note {
+      position: absolute;
+      bottom: 10px;
+      height: 40px;
+      background: #4a6bff;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      transform: translateX(-50%);
+      
+      &.active {
+        background: #ff9800;
+        box-shadow: 0 0 10px #ff9800;
+      }
+      
+      &.hit {
+        background: #4caf50;
+        box-shadow: 0 0 10px #4caf50;
+      }
+    }
+    
+    .indicator {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: red;
+      transform: translateX(-50%);
+    }
+  }

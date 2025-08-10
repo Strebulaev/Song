@@ -4,10 +4,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>NoteStrike</title>
+  <title>Song</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
   <app-root></app-root>
@@ -27,7 +29,45 @@ bootstrapApplication(AppComponent, appConfig)
 
 --- Файл: D:\NoteStrike\src\styles.scss ---
 
+
+// Include theming for Angular Material with `mat.theme()`.
+// This Sass mixin will define CSS variables that are used for styling Angular Material
+// components according to the Material 3 design spec.
+// Learn more about theming and how to use it for your application's
+// custom components at https://material.angular.dev/guide/theming
+@use '@angular/material' as mat;
+
+html {
+  @include mat.theme((
+    color: (
+      primary: mat.$magenta-palette,
+      tertiary: mat.$violet-palette,
+    ),
+    typography: Roboto,
+    density: 0,
+  ));
+}
+
+body {
+  // Default the application to a light color theme. This can be changed to
+  // `dark` to enable the dark color theme, or to `light dark` to defer to the
+  // user's system settings.
+  color-scheme: light;
+
+  // Set a default background, font and text colors for the application using
+  // Angular Material's system-level CSS variables. Learn more about these
+  // variables at https://material.angular.dev/guide/system-variables
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+
+  // Reset the user agent margin.
+  margin: 0;
+}
 /* You can add global styles to this file, and also import other style files */
+
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
 
 --- Файл: D:\NoteStrike\src\app\app.component.html ---
@@ -58,15 +98,17 @@ bootstrapApplication(AppComponent, appConfig)
 import { Component } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { NavbarComponent } from "./navbar/navbar.component";
+import { AudioService } from './services/audio.service';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
-  imports: [RouterModule, NavbarComponent]
+  imports: [RouterModule, NavbarComponent],
+  providers: [AudioService],
 })
 export class AppComponent {
-  title = 'Vocal Trainer';
+  title = '...';
 }
 
 --- Файл: D:\NoteStrike\src\app\app.config.ts ---
@@ -94,16 +136,12 @@ import { StatsComponent } from './stats/stats.component';
 import { PracticeComponent } from './practice/practice.component';
 import { UploadComponent } from './upload/upload.component';
 
-export const routes: Routes = 
-[
+export const routes: Routes = [
     {
         path: "", component: HomeComponent
     },
     {
         path: "home", component: HomeComponent
-    },
-    {
-        path: "**", component: HomeComponent
     },
     {
         path: "library", component: LibraryComponent
@@ -112,46 +150,21 @@ export const routes: Routes =
         path: "stats", component: StatsComponent
     },
     {
-        path: "partice", component: PracticeComponent
+        path: "practice", component: PracticeComponent
     },
     {
         path: "upload", component: UploadComponent
+    },
+    {
+        path: "**", component: HomeComponent
     }
 ];
-
-
---- Файл: D:\NoteStrike\src\app\app.spec.ts ---
-
-import { TestBed } from '@angular/core/testing';
-import { App } from './app';
-
-describe('App', () => {
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [App],
-    }).compileComponents();
-  });
-
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
-  });
-
-  it('should render title', () => {
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, NoteStrike');
-  });
-});
-
 
 --- Файл: D:\NoteStrike\src\app\home\home.component.html ---
 
 <div class="home-container">
-    <h1>Vocal Trainer</h1>
-    <p>Тренируй свой вокал, улучшай точность нот и становись лучше!</p>
+    <h1>...</h1>
+    <p>...</p>
   
     <div class="actions">
       <button class="btn-primary" (click)="navigateToUpload()">
@@ -319,7 +332,7 @@ interface Song {
   artist: string;
   bpm: number;
   key: string;
-  notes: string[];
+  notes: string[]; // Просто массив строк
 }
 
 @Component({
@@ -398,7 +411,7 @@ export interface Song {
 
 <nav class="navbar">
     <div class="navbar-brand" (click)="navigateTo('/')">
-      {{ 'Vocal Trainer' }}
+      {{ '...' }}
     </div>
     <div class="navbar-links">
       <a (click)="navigateTo('/upload')">Загрузить песню</a>
@@ -616,105 +629,41 @@ export class NavbarComponent {
 --- Файл: D:\NoteStrike\src\app\practice\practice.component.ts ---
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { AudioService, PitchDetectionResult } from '../services/audio.service';
-import { ActivatedRoute } from '@angular/router';
-import { Subscription } from 'rxjs';
-
-interface SongNote {
-  time: number;
-  note: string;
-  duration: number;
-}
-
-interface SongData {
-  title: string;
-  notes: string[];
-  bpm?: number;
-  key?: string;
-}
 
 @Component({
   selector: 'app-practice',
   templateUrl: './practice.component.html',
-  styleUrls: ['./practice.component.scss'],
-  imports: [CommonModule]
+  styleUrls: ['./practice.component.scss']
 })
 export class PracticeComponent implements OnInit, OnDestroy {
-  currentSongNotes: SongNote[] = [];
-  currentNoteIndex = 0;
-  userPitch: PitchDetectionResult | null = null;
-  accuracy = 0;
   isRecording = false;
-  songData: SongData | null = null;
+  userPitch: PitchDetectionResult | null = null;
 
-  private pitchSubscription!: Subscription;
-
-  constructor(
-    private audioService: AudioService,
-    private route: ActivatedRoute
-  ) {}
-
+  constructor(private audioService: AudioService) {}
   ngOnInit(): void {
-    this.songData = history.state.songData;
-    if (this.songData?.notes) {
-      this.currentSongNotes = this.songData.notes.map((note: string, index: number) => ({
-        note,
-        time: index * 0.5,
-        duration: 0.5
-      }));
-    }
+    throw new Error('Method not implemented.');
   }
 
-  toggleRecording(): void {
-    this.isRecording = !this.isRecording;
-
+  async toggleRecording() {
     if (this.isRecording) {
-      this.startPitchDetection();
+      this.audioService.stopPitchDetection();
     } else {
-      this.stopPitchDetection();
-    }
-  }
-
-  private startPitchDetection(): void {
-    this.pitchSubscription = this.audioService.pitchDetection$.subscribe(
-      (result: PitchDetectionResult) => {
-        this.userPitch = result;
-        this.checkAccuracy();
-      },
-      (error) => {
-        console.error('Pitch detection error:', error);
-        this.isRecording = false;
+      try {
+        await this.audioService.startPitchDetection();
+        this.audioService.pitchDetection$.subscribe(pitch => {
+          this.userPitch = pitch;
+        });
+      } catch (error) {
+        console.error('Error starting recording:', error);
+        alert('Не удалось получить доступ к микрофону. Проверьте разрешения.');
       }
-    );
-
-    this.audioService.startPitchDetection().catch(error => {
-      console.error('Error starting pitch detection:', error);
-      this.isRecording = false;
-    });
-  }
-
-  private stopPitchDetection(): void {
-    this.pitchSubscription?.unsubscribe();
-    this.audioService.stopPitchDetection();
-    this.userPitch = null;
-  }
-
-  private checkAccuracy(): void {
-    if (!this.userPitch?.note || !this.currentSongNotes[this.currentNoteIndex]) return;
-
-    const currentTargetNote = this.currentSongNotes[this.currentNoteIndex].note;
-    
-    if (this.userPitch.note === currentTargetNote) {
-      this.accuracy = 100 - Math.min(100, Math.abs(this.userPitch.cents) / 2);
-      this.currentNoteIndex = (this.currentNoteIndex + 1) % this.currentSongNotes.length;
-    } else {
-      this.accuracy = 0;
     }
+    this.isRecording = !this.isRecording;
   }
 
-  ngOnDestroy(): void {
-    this.stopPitchDetection();
+  ngOnDestroy() {
+    this.audioService.stopPitchDetection();
   }
 }
 
@@ -722,19 +671,6 @@ export class PracticeComponent implements OnInit, OnDestroy {
 
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
-
-export interface PitchDetectionResult {
-  note: string;
-  cents: number;
-  frequency: number;
-}
-
-export interface AudioAnalysisResult {
-  notes: string[];
-  bpm: number;
-  key: string;
-  audioBuffer?: AudioBuffer;
-}
 
 @Injectable({
   providedIn: 'root'
@@ -745,74 +681,12 @@ export class AudioService {
   private microphone: MediaStreamAudioSourceNode | null = null;
   private scriptProcessor: ScriptProcessorNode | null = null;
   private pitchDetectionSubject = new Subject<PitchDetectionResult>();
-  private notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
   private isRecording = false;
 
   constructor() {
     this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     this.analyser = this.audioContext.createAnalyser();
     this.analyser.fftSize = 4096;
-  }
-
-  get pitchDetection$() {
-    return this.pitchDetectionSubject.asObservable();
-  }
-
-  async decodeAudioFile(file: File): Promise<AudioBuffer> {
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      return await this.audioContext.decodeAudioData(arrayBuffer);
-    } catch (error) {
-      console.error('Error decoding audio file:', error);
-      throw error;
-    }
-  }
-  private async detectNotes(buffer: AudioBuffer): Promise<string[]> {
-    const notes: string[] = [];
-    const frameSize = 2048;
-    const stepSize = Math.floor(frameSize / 4);
-
-    for (let i = 0; i < buffer.length - frameSize; i += stepSize) {
-      const slice = buffer.getChannelData(0).slice(i, i + frameSize);
-      const frequency = this.getDominantFrequency(new Float32Array(slice));
-      if (frequency > 0) {
-        const noteInfo = this.frequencyToNote(frequency);
-        notes.push(noteInfo.note);
-      }
-    }
-
-    return notes;
-  }
-
-  private detectKey(notes: string[]): string {
-    const noteCounts: Record<string, number> = {};
-    notes.forEach(note => {
-      const baseNote = note.replace(/\d+$/, '');
-      noteCounts[baseNote] = (noteCounts[baseNote] || 0) + 1;
-    });
-
-    let maxCount = 0;
-    let keyNote = 'C';
-    for (const note in noteCounts) {
-      if (noteCounts[note] > maxCount) {
-        maxCount = noteCounts[note];
-        keyNote = note;
-      }
-    }
-
-    return keyNote + ' Major';
-  }
-  async analyzeAudioBuffer(buffer: AudioBuffer): Promise<AudioAnalysisResult> {
-    const notes = await this.detectNotes(buffer);
-    const bpm = this.detectBPM(buffer);
-    const key = this.detectKey(notes);
-
-    return {
-      notes: [...new Set(notes)],
-      bpm,
-      key,
-      audioBuffer: buffer
-    };
   }
 
   async startPitchDetection(): Promise<void> {
@@ -824,12 +698,15 @@ export class AudioService {
       this.microphone.connect(this.analyser);
 
       this.scriptProcessor = this.audioContext.createScriptProcessor(4096, 1, 1);
+      this.analyser.connect(this.scriptProcessor);
       this.scriptProcessor.connect(this.audioContext.destination);
 
       this.scriptProcessor.onaudioprocess = () => {
-        const frequencies = new Float32Array(this.analyser.frequencyBinCount);
-        this.analyser.getFloatFrequencyData(frequencies);
-        const result = this.detectPitch(frequencies);
+        if (!this.isRecording) return;
+        
+        const buffer = new Float32Array(this.analyser.fftSize);
+        this.analyser.getFloatTimeDomainData(buffer);
+        const result = this.detectPitch(buffer);
         this.pitchDetectionSubject.next(result);
       };
 
@@ -850,81 +727,95 @@ export class AudioService {
     this.isRecording = false;
   }
 
-  private detectPitch(frequencies: Float32Array): PitchDetectionResult {
-    const frequency = this.getDominantFrequency(frequencies);
+  private detectPitch(buffer: Float32Array): PitchDetectionResult {
+    const frequency = this.getDominantFrequency(buffer);
     if (frequency <= 0) {
       return { note: '', cents: 0, frequency: 0 };
     }
-
-    const noteInfo = this.frequencyToNote(frequency);
-    return {
-      note: noteInfo.note,
-      cents: noteInfo.cents,
-      frequency
-    };
+    return this.frequencyToNote(frequency);
   }
 
-  private getDominantFrequency(frequencies: Float32Array): number {
-    let maxIndex = 0;
-    let maxValue = -Infinity;
+  private getDominantFrequency(buffer: Float32Array): number {
+    // Реализация анализа частоты
+    const autoCorrelate = (buffer: Float32Array, sampleRate: number) => {
+      // Улучшенный алгоритм авто-корреляции
+      const SIZE = buffer.length;
+      const MAX_SAMPLES = Math.floor(SIZE / 2);
+      let bestOffset = -1;
+      let bestCorrelation = 0;
+      let rms = 0;
+      let foundGoodCorrelation = false;
 
-    for (let i = 0; i < frequencies.length; i++) {
-      if (frequencies[i] > maxValue && frequencies[i] > -90) {
-        maxValue = frequencies[i];
-        maxIndex = i;
+      for (let i = 0; i < SIZE; i++) {
+        const val = buffer[i];
+        rms += val * val;
       }
-    }
+      rms = Math.sqrt(rms / SIZE);
+      if (rms < 0.01) return -1;
 
-    return maxIndex * this.audioContext.sampleRate / this.analyser.fftSize;
+      let lastCorrelation = 1;
+      for (let offset = 0; offset < MAX_SAMPLES; offset++) {
+        let correlation = 0;
+
+        for (let i = 0; i < MAX_SAMPLES; i++) {
+          correlation += Math.abs(buffer[i] - buffer[i + offset]);
+        }
+        correlation = 1 - correlation / MAX_SAMPLES;
+        if (correlation > 0.9 && correlation > lastCorrelation) {
+          foundGoodCorrelation = true;
+          if (correlation > bestCorrelation) {
+            bestCorrelation = correlation;
+            bestOffset = offset;
+          }
+        } else if (foundGoodCorrelation) {
+          const shift = (bestCorrelation - correlation) / correlation;
+          return sampleRate / (bestOffset + 8 * shift);
+        }
+        lastCorrelation = correlation;
+      }
+      if (bestCorrelation > 0.01) {
+        return sampleRate / bestOffset;
+      }
+      return -1;
+    };
+
+    return autoCorrelate(buffer, this.audioContext.sampleRate);
   }
 
-  private frequencyToNote(frequency: number): { note: string; cents: number } {
+  private frequencyToNote(frequency: number): PitchDetectionResult {
     const A4 = 440;
     const C0 = A4 * Math.pow(2, -4.75);
-    const noteNames = this.notes;
-
-    if (frequency <= 0) return { note: '', cents: 0 };
-
+    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  
+    if (frequency <= 0) {
+      return { note: '', cents: 0, frequency: 0 };
+    }
+  
     const halfSteps = Math.round(12 * Math.log2(frequency / C0));
     const octave = Math.floor(halfSteps / 12);
     const noteIndex = halfSteps % 12;
     const note = noteNames[noteIndex] + octave;
-
+  
     // Calculate cents deviation
     const expectedFrequency = C0 * Math.pow(2, halfSteps / 12);
     const cents = Math.floor(1200 * Math.log2(frequency / expectedFrequency));
-
-    return { note, cents };
+  
+    return {
+      note,
+      cents,
+      frequency // Добавляем frequency в возвращаемый объект
+    };
   }
 
-  private detectBPM(buffer: AudioBuffer): number {
-    // Реализация простого BPM детектора
-    const channelData = buffer.getChannelData(0);
-    const threshold = 0.3;
-    let lastPeak = 0;
-    const peaks: number[] = [];
-
-    for (let i = 1; i < channelData.length - 1; i++) {
-      if (channelData[i] > threshold && 
-          channelData[i] > channelData[i - 1] && 
-          channelData[i] > channelData[i + 1]) {
-        if (i - lastPeak > 1000) { // Минимальный интервал между пиками
-          peaks.push(i);
-          lastPeak = i;
-        }
-      }
-    }
-
-    if (peaks.length < 2) return 120; // Значение по умолчанию
-
-    const intervals = [];
-    for (let i = 1; i < peaks.length; i++) {
-      intervals.push(peaks[i] - peaks[i - 1]);
-    }
-
-    const averageInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-    return Math.round((60 * buffer.sampleRate) / averageInterval);
+  get pitchDetection$() {
+    return this.pitchDetectionSubject.asObservable();
   }
+}
+
+export interface PitchDetectionResult {
+  note: string;
+  cents: number;
+  frequency: number;
 }
 
 --- Файл: D:\NoteStrike\src\app\services\song.service.ts ---
@@ -1173,70 +1064,62 @@ export class StatsComponent {
 
 --- Файл: D:\NoteStrike\src\app\upload\upload.component.scss ---
 
-@import '~@angular/material/theming';
-
 .upload-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-  color: #333;
-
-  h1, h2 {
-    color: mat-color($mat-indigo, 700);
-    text-align: center;
+    h1, h2 {
+      color: #303f9f; // Пример цвета для primary 700 (indigo)
+    }
   }
-}
-
+  
 .file-upload-wrapper {
   position: relative;
   width: 100%;
   margin-bottom: 1.5rem;
 
   input[type="file"] {
-    display: none;
+      display: none;
   }
 
   .file-upload-label {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    border: 2px dashed mat-color($mat-indigo, 300);
-    border-radius: 8px;
-    background: rgba(mat-color($mat-indigo, 50), 0.5);
-    cursor: pointer;
-    transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      border: 2px dashed #7986cb; // Пример цвета для indigo 300
+      border-radius: 8px;
+      background: rgba(#e8eaf6, 0.5); // Пример цвета для indigo 50
+      cursor: pointer;
+      transition: all 0.3s ease;
 
-    &:hover {
-      border-color: mat-color($mat-indigo, 500);
-      background: rgba(mat-color($mat-indigo, 100), 0.5);
-    }
+      &:hover {
+      border-color: #3f51b5; // Пример цвета для indigo 500
+      background: rgba(#c5cae9, 0.5); // Пример цвета для indigo 100
+      }
 
-    i.material-icons {
+      i.material-icons {
       margin-right: 0.5rem;
-      color: mat-color($mat-indigo, 500);
-    }
+      color: #3f51b5; // Пример цвета для indigo 500
+      }
   }
 
   .clear-btn {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    background: transparent;
-    border: none;
-    color: mat-color($mat-red, 500);
-    cursor: pointer;
-    padding: 0.25rem;
-    border-radius: 50%;
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: transparent;
+      border: none;
+      color: #f44336; // Пример цвета для red 500
+      cursor: pointer;
+      padding: 0.25rem;
+      border-radius: 50%;
 
-    &:hover {
-      background: rgba(mat-color($mat-red, 500), 0.1);
-    }
+      &:hover {
+        background: rgba(#f44336, 0.1);
+      }
   }
 }
 
 .error-message {
-  color: mat-color($mat-red, 600);
+  color: #e53935; // Пример цвета для red 600
   margin: 0.5rem 0;
   text-align: center;
 }
@@ -1256,30 +1139,30 @@ export class StatsComponent {
   transition: all 0.3s ease;
 
   i.material-icons {
-    margin-right: 0.5rem;
+      margin-right: 0.5rem;
   }
 
   &.analyze-btn {
-    background: mat-color($mat-indigo, 500);
-    color: white;
+      background: #3f51b5; // Пример цвета для indigo 500
+      color: white;
 
-    &:hover {
-      background: mat-color($mat-indigo, 600);
-    }
+      &:hover {
+          background: #3949ab; // Пример цвета для indigo 600
+      }
 
-    &:disabled {
-      background: mat-color($mat-grey, 400);
-      cursor: not-allowed;
-    }
+      &:disabled {
+          background: #bdbdbd; // Пример цвета для grey 400
+          cursor: not-allowed;
+      }
   }
 
   &.practice-btn {
-    background: mat-color($mat-green, 500);
-    color: white;
+      background: #4caf50; // Пример цвета для green 500
+      color: white;
 
-    &:hover {
-      background: mat-color($mat-green, 600);
-    }
+      &:hover {
+          background: #43a047; // Пример цвета для green 600
+      }
   }
 }
 
@@ -1291,32 +1174,32 @@ export class StatsComponent {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 
   .result-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1.5rem;
-    margin: 1.5rem 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin: 1.5rem 0;
   }
 
   .result-item {
-    label {
-      display: block;
-      font-weight: 500;
-      color: mat-color($mat-grey, 600);
-      margin-bottom: 0.25rem;
-    }
-
-    .notes-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-
-      .note-tag {
-        padding: 0.25rem 0.5rem;
-        background: mat-color($mat-indigo, 50);
-        border-radius: 4px;
-        font-size: 0.9rem;
+      label {
+          display: block;
+          font-weight: 500;
+          color: #757575; // Пример цвета для grey 600
+          margin-bottom: 0.25rem;
       }
-    }
+
+      .notes-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+
+          .note-tag {
+              padding: 0.25rem 0.5rem;
+              background: #e8eaf6; // Пример цвета для indigo 50
+              border-radius: 4px;
+              font-size: 0.9rem;
+          }
+      }
   }
 }
 

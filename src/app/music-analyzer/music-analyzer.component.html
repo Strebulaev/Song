@@ -1,0 +1,39 @@
+<div class="analyzer-container">
+    <h1>Анализатор музыки</h1>
+    
+    <div class="upload-section">
+      <div class="file-upload">
+        <input type="file" id="music-file" accept=".mp3,.wav,.ogg" (change)="onFileSelected($event)" #fileInput>
+        <label for="music-file">
+          <span>{{ selectedFile?.name || 'Выберите аудиофайл' }}</span>
+        </label>
+        <button class="clear-btn" (click)="selectedFile = null; fileInput.value = ''" *ngIf="selectedFile">
+          Очистить
+        </button>
+      </div>
+  
+      <button class="analyze-btn" (click)="analyzeMusic()" [disabled]="!selectedFile || isAnalyzing">
+        {{ isAnalyzing ? 'Анализ...' : 'Анализировать' }}
+      </button>
+  
+      <div class="error-message" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+    </div>
+  
+    <div class="results-section" *ngIf="notesList.length > 0">
+      <h2>Обнаруженные ноты:</h2>
+      <div class="notes-table">
+        <div class="table-header">
+          <div>Нота</div>
+          <div>Время</div>
+          <div>Длительность</div>
+        </div>
+        <div class="table-row" *ngFor="let note of notesList">
+          <div>{{ note.name }}</div>
+          <div>{{ note.time }}</div>
+          <div>{{ note.duration }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
