@@ -70,6 +70,45 @@ html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
 
+--- Файл: D:\NoteStrike\src\typings.d.ts ---
+
+declare class AudioWorkletProcessor {
+    readonly port: MessagePort;
+    process(inputs: Float32Array[][], outputs: Float32Array[][], parameters: Record<string, Float32Array>): boolean;
+  }
+  
+  declare function registerProcessor(name: string, processorCtor: any): void;
+  
+  declare const sampleRate: number;
+
+--- Файл: D:\NoteStrike\src\vite.config.ts ---
+
+import { defineConfig } from 'vite';
+import angular from '@analogjs/vite-plugin-angular';
+
+export default defineConfig({
+  plugins: [
+    angular()
+  ],
+  assetsInclude: ['**/*.worklet.js'],
+  server: {
+    fs: {
+      strict: false // Для разрешения импортов из node_modules
+    }
+  },
+  build: {
+    target: 'es2020',
+    rollupOptions: {
+      external: [
+        // Добавьте сюда любые модули, которые нужно исключить из сборки
+      ],
+      output: {
+        assetFileNames: 'assets/[name].[ext]'
+      }
+    }
+  }
+});
+
 --- Файл: D:\NoteStrike\src\app\app.component.html ---
 
 <div class="app-container">
@@ -135,6 +174,7 @@ import { LibraryComponent } from './library/library.component';
 import { StatsComponent } from './stats/stats.component';
 import { PracticeComponent } from './practice/practice.component';
 import { UploadComponent } from './upload/upload.component';
+import { MusicAnalyzerComponent } from './music-analyzer/music-analyzer.component';
 
 export const routes: Routes = [
     {
@@ -154,6 +194,10 @@ export const routes: Routes = [
     },
     {
         path: "upload", component: UploadComponent
+    },
+    {
+        path: 'analyzer',
+        component: MusicAnalyzerComponent
     },
     {
         path: "**", component: HomeComponent
@@ -323,17 +367,9 @@ export class HomeComponent {
 
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
-import { AudioService, AudioAnalysisResult } from '../services/audio.service';
+import { AudioService } from '../services/audio.service';
 import { CommonModule } from '@angular/common';
-
-interface Song {
-  id: string;
-  title: string;
-  artist: string;
-  bpm: number;
-  key: string;
-  notes: string[]; // Просто массив строк
-}
+import { Song, Note } from '../models/song.model';
 
 @Component({
   selector: 'app-library',
@@ -342,29 +378,19 @@ interface Song {
   imports: [CommonModule]
 })
 export class LibraryComponent {
-  songs: Song[] = [
-    {
-      id: '1',
-      title: 'Пример песни 1',
-      artist: 'Исполнитель',
-      bpm: 120,
-      key: 'C Major',
-      notes: ['C4', 'D4', 'E4', 'F4', 'G4']
-    },
-    {
-      id: '2',
-      title: 'Пример песни 2',
-      artist: 'Другой исполнитель',
-      bpm: 90,
-      key: 'G Major',
-      notes: ['G4', 'A4', 'B4', 'C5', 'D5']
-    }
-  ];
+  songs: Song[] = [];
 
   constructor(
     private router: Router,
     private audioService: AudioService
-  ) {}
+  ) {
+    this.loadSongs();
+  }
+
+  private loadSongs(): void {
+    const savedSongs = localStorage.getItem('songs');
+    this.songs = savedSongs ? JSON.parse(savedSongs) : [];
+  }
 
   startPractice(song: Song): void {
     this.router.navigate(['/practice'], { state: { songData: song } });
@@ -372,40 +398,300 @@ export class LibraryComponent {
 
   async analyzeAndAddSong(file: File): Promise<void> {
     try {
-      const buffer = await this.audioService.decodeAudioFile(file);
-      const analysisResult = await this.audioService.analyzeAudioBuffer(buffer);
+      const buffer = await this.audioService.decodeAudioFile(file).catch(error => {
+        console.error('Error decoding audio file:', error);
+        throw error; // или return null; в зависимости от логики приложения
+      });
+      const analysisResult = await this.audioService.analyzeAudioBuffer(buffer, file.name);
       
       const newSong: Song = {
         id: Date.now().toString(),
         title: file.name.replace(/\.[^/.]+$/, ""),
-        artist: 'Неизвестный исполнитель',
+        artist: 'Unknown Artist',
         bpm: analysisResult.bpm,
         key: analysisResult.key,
-        notes: analysisResult.notes
+        notes: analysisResult.notes // Теперь notes правильно типизированы как Note[]
       };
 
       this.songs = [...this.songs, newSong];
+      localStorage.setItem('songs', JSON.stringify(this.songs));
     } catch (error) {
       console.error('Error analyzing song:', error);
     }
   }
 }
 
+--- Файл: D:\NoteStrike\src\app\models\note-track.model.ts ---
+
+import { Note } from './song.model';
+
+export interface NoteTrackComponentInterface {
+  startPlayback(): void;
+  checkUserNote(note: string): void;
+  readonly activeNotes: Note[]; // Делаем явно read-only
+  getCurrentTime(): number; // Добавляем новый метод
+}
+
 --- Файл: D:\NoteStrike\src\app\models\song.model.ts ---
 
+export interface Note {
+  pitch: string;
+  time: number;
+  duration: number;
+}
+
 export interface Song {
-    id: string;
-    title: string;
-    artist?: string;
-    bpm?: number;
-    key?: string;
-    notes: {
-      time: number;
-      pitch: string;
-      duration: number;
-    }[];
-    audioBuffer?: AudioBuffer;
+  id: string;
+  title: string;
+  artist: string;
+  bpm: number;
+  key: string;
+  notes: Note[];
+  audioBuffer?: AudioBuffer;
+}
+
+--- Файл: D:\NoteStrike\src\app\music-analyzer\music-analyzer.component.html ---
+
+<div class="analyzer-container">
+    <h1>Анализатор музыки</h1>
+    
+    <div class="upload-section">
+      <div class="file-upload">
+        <input type="file" id="music-file" accept=".mp3,.wav,.ogg" (change)="onFileSelected($event)" #fileInput>
+        <label for="music-file">
+          <span>{{ selectedFile?.name || 'Выберите аудиофайл' }}</span>
+        </label>
+        <button class="clear-btn" (click)="selectedFile = null; fileInput.value = ''" *ngIf="selectedFile">
+          Очистить
+        </button>
+      </div>
+  
+      <button class="analyze-btn" (click)="analyzeMusic()" [disabled]="!selectedFile || isAnalyzing">
+        {{ isAnalyzing ? 'Анализ...' : 'Анализировать' }}
+      </button>
+  
+      <div class="error-message" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+    </div>
+  
+    <div class="results-section" *ngIf="notesList.length > 0">
+      <h2>Обнаруженные ноты:</h2>
+      <div class="notes-table">
+        <div class="table-header">
+          <div>Нота</div>
+          <div>Время</div>
+          <div>Длительность</div>
+        </div>
+        <div class="table-row" *ngFor="let note of notesList">
+          <div>{{ note.name }}</div>
+          <div>{{ note.time }}</div>
+          <div>{{ note.duration }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+--- Файл: D:\NoteStrike\src\app\music-analyzer\music-analyzer.component.scss ---
+
+.analyzer-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    font-family: 'Roboto', sans-serif;
   }
+  
+  h1, h2 {
+    color: #3f51b5;
+    text-align: center;
+  }
+  
+  .upload-section {
+    background: #f5f5f5;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+  }
+  
+  .file-upload {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+  
+    input[type="file"] {
+      display: none;
+    }
+  
+    label {
+      flex-grow: 1;
+      padding: 0.75rem;
+      background: white;
+      border: 1px dashed #3f51b5;
+      border-radius: 4px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.3s;
+  
+      &:hover {
+        background: #e8eaf6;
+      }
+    }
+  
+    .clear-btn {
+      margin-left: 1rem;
+      padding: 0.75rem 1rem;
+      background: #f44336;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s;
+  
+      &:hover {
+        background: #d32f2f;
+      }
+    }
+  }
+  
+  .analyze-btn {
+    width: 100%;
+    padding: 1rem;
+    background: #3f51b5;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.3s;
+  
+    &:hover:not(:disabled) {
+      background: #303f9f;
+    }
+  
+    &:disabled {
+      background: #9e9e9e;
+      cursor: not-allowed;
+    }
+  }
+  
+  .error-message {
+    color: #f44336;
+    margin-top: 1rem;
+    text-align: center;
+  }
+  
+  .results-section {
+    margin-top: 2rem;
+  }
+  
+  .notes-table {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+  
+    .table-header, .table-row {
+      display: contents;
+    }
+  
+    & > div {
+      padding: 0.75rem;
+      border-bottom: 1px solid #e0e0e0;
+      background: white;
+  
+      &:nth-child(3n+1) {
+        font-weight: 500;
+      }
+    }
+  
+    .table-header > div {
+      background: #3f51b5;
+      color: white;
+      font-weight: 500;
+      text-align: center;
+    }
+  }
+
+--- Файл: D:\NoteStrike\src\app\music-analyzer\music-analyzer.component.ts ---
+
+import { Component } from '@angular/core';
+import { AudioService } from '../services/audio.service';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-music-analyzer',
+  templateUrl: './music-analyzer.component.html',
+  styleUrls: ['./music-analyzer.component.scss'],
+  standalone: true,
+  imports: [CommonModule]
+})
+export class MusicAnalyzerComponent {
+  selectedFile: File | null = null;
+  isAnalyzing = false;
+  errorMessage: string | null = null;
+  notesList: {name: string, time: string, duration: string}[] = [];
+  
+  // Русские названия нот
+  private readonly NOTE_NAMES = ['до', 'до#', 'ре', 'ре#', 'ми', 'фа', 'фа#', 'соль', 'соль#', 'ля', 'ля#', 'си'];
+  private readonly NOTE_NAMES_FLAT = ['до', 'реб', 'ре', 'миб', 'ми', 'фа', 'сольб', 'соль', 'ляб', 'ля', 'сиб', 'си'];
+
+  constructor(private audioService: AudioService) {}
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files?.length) {
+      this.selectedFile = input.files[0];
+      this.errorMessage = null;
+      this.notesList = [];
+    }
+  }
+
+  async analyzeMusic(): Promise<void> {
+    if (!this.selectedFile) {
+      this.errorMessage = 'Пожалуйста, выберите файл';
+      return;
+    }
+
+    this.isAnalyzing = true;
+    this.errorMessage = null;
+
+    try {
+      const buffer = await this.audioService.decodeAudioFile(this.selectedFile);
+      const analysis = await this.audioService.analyzeAudioBuffer(buffer, this.selectedFile.name);
+      
+      // Конвертируем ноты в русский формат
+      this.notesList = analysis.notes.map(note => ({
+        name: this.getRussianNoteName(note.pitch),
+        time: note.time.toFixed(2) + ' сек',
+        duration: note.duration.toFixed(2) + ' сек'
+      }));
+
+    } catch (error) {
+      console.error('Ошибка анализа:', error);
+      this.errorMessage = 'Ошибка при анализе файла';
+    } finally {
+      this.isAnalyzing = false;
+    }
+  }
+
+  private getRussianNoteName(note: string): string {
+    const match = note.match(/^([A-Ga-g])([#b]?)(\d+)$/);
+    if (!match) return note;
+    
+    const [, letter, accidental, octave] = match;
+    const index = 'CDEFGABCDEFGAB'.indexOf(letter.toUpperCase());
+    
+    let noteName;
+    if (accidental === 'b') {
+      noteName = this.NOTE_NAMES_FLAT[index];
+    } else {
+      noteName = this.NOTE_NAMES[index];
+    }
+    
+    return `${noteName} ${octave} октавы`;
+  }
+}
 
 --- Файл: D:\NoteStrike\src\app\navbar\navbar.component.html ---
 
@@ -417,6 +703,7 @@ export interface Song {
       <a (click)="navigateTo('/upload')">Загрузить песню</a>
       <a (click)="navigateTo('/library')">Библиотека</a>
       <a (click)="navigateTo('/stats')">Статистика</a>
+      <a (click)="navigateTo('/analyzer')">Анализатор музыки</a>
     </div>
   </nav>
 
@@ -473,197 +760,557 @@ export class NavbarComponent {
   }
 }
 
---- Файл: D:\NoteStrike\src\app\practice\practice.component.html ---
+--- Файл: D:\NoteStrike\src\app\note-track\note-track.component.html ---
 
-<div class="practice-container">
-    <h1>Тренировка: {{ songData ? songData.title : 'Выбранная песня' }}</h1>
-    
-    <div class="practice-content">
-      <div class="note-display">
-        <div class="target-note">
-          <h3>Целевая нота</h3>
-          <div class="note">
-            @if (currentSongNotes[currentNoteIndex]) {
-              {{ currentSongNotes[currentNoteIndex].note }}
-            } @else {
-              --
-            }
+<div class="note-track-container">
+    <div class="note-track">
+      <div class="notes-container">
+        @for (note of notes; track note.pitch + note.time) {
+          <div class="note" 
+               [style.left.%]="(note.time / totalDuration) * 100"
+               [style.width.%]="(note.duration / totalDuration) * 100"
+               [class.active]="activeNotes.includes(note)"
+               [class.hit]="hitWindows.get(note.pitch)">
+            {{ note.pitch }}
           </div>
-        </div>
-        
-        <div class="user-note">
-          <h3>Ваша нота</h3>
-          <div class="note" [class.correct]="userPitch?.note === currentSongNotes[currentNoteIndex].note">
-            {{ userPitch?.note || '--' }}
-          </div>
-          <div class="cents" *ngIf="userPitch?.cents">
-            Отклонение: {{ userPitch?.cents }} центов
-          </div>
-        </div>
+        }
       </div>
-  
-      <div class="accuracy-display">
-        <div class="accuracy-value">Точность: {{ accuracy }}%</div>
-        <div class="accuracy-bar">
-          <div class="fill" [style.width.%]="accuracy"></div>
-        </div>
-      </div>
-  
-      <div class="controls">
-        <button (click)="toggleRecording()" [class.recording]="isRecording">
-          {{ isRecording ? 'Остановить запись' : 'Начать запись' }}
-        </button>
+      
+      <div class="indicator" 
+           [@moveIndicator]="{
+             value: animationState,
+             params: { duration: totalDuration * 1000 }
+           }">
       </div>
     </div>
   </div>
 
+--- Файл: D:\NoteStrike\src\app\note-track\note-track.component.scss ---
+
+.note-track-container {
+    width: 100%;
+    padding: 20px;
+    background: #2d2d42;
+    border-radius: 8px;
+  }
+  
+  .note-track {
+    position: relative;
+    height: 80px;
+    background: #1e1e2f;
+    border-radius: 4px;
+    overflow: hidden;
+    
+    .notes-container {
+      position: relative;
+      height: 100%;
+    }
+    
+    .note {
+      position: absolute;
+      bottom: 10px;
+      height: 40px;
+      background: #4a6bff;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      transform: translateX(-50%);
+      
+      &.active {
+        background: #ff9800;
+        box-shadow: 0 0 10px #ff9800;
+      }
+      
+      &.hit {
+        background: #4caf50;
+        box-shadow: 0 0 10px #4caf50;
+      }
+    }
+    
+    .indicator {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: red;
+      transform: translateX(-50%);
+    }
+  }
+
+--- Файл: D:\NoteStrike\src\app\note-track\note-track.component.ts ---
+
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
+import { Note } from '../models/song.model';
+
+// Перенесем интерфейс прямо в файл компонента
+interface NoteTrackInterface {
+  startPlayback(): void;
+  checkUserNote(note: string): void;
+  readonly activeNotes: Note[];
+  getCurrentTime(): number;
+}
+
+@Component({
+  selector: 'app-note-track',
+  templateUrl: './note-track.component.html',
+  styleUrls: ['./note-track.component.scss']
+})
+export class NoteTrackComponent implements NoteTrackInterface, OnInit, OnDestroy {
+  @Input() notes: Note[] = [];
+  @Input() bpm = 120;
+  @Output() noteHit = new EventEmitter<{ note: string, accuracy: number }>();
+  
+  animationState = 'start';
+  totalDuration = 0;
+  hitWindows: Map<string, boolean> = new Map();
+  private timer: any;
+  private startTime = 0;
+  private currentTime = 0;
+  private _activeNotes: Note[] = [];
+
+  ngOnInit() {
+    this.calculateTotalDuration();
+  }
+
+  getCurrentTime(): number {
+    return this.currentTime;
+  }
+
+  ngOnDestroy() {
+    this.stopPlayback();
+  }
+
+  get activeNotes(): Note[] {
+    return [...this._activeNotes]; // Возвращаем копию массива для защиты от изменений
+  }
+
+  startPlayback(): void {
+    this.stopPlayback();
+    this._activeNotes = []; // Изменяем приватное свойство вместо публичного
+    this.hitWindows.clear();
+    this.animationState = 'start';
+    this.startTime = Date.now();
+    this.currentTime = 0;
+    
+    this.timer = setInterval(() => {
+      this.currentTime = (Date.now() - this.startTime) / 1000;
+      this.updateActiveNotes();
+    }, 16);
+    
+    setTimeout(() => {
+      this.animationState = 'end';
+    }, 0);
+  }
+
+  stopPlayback() {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+  }
+
+  private calculateTotalDuration() {
+    if (this.notes.length === 0) {
+      this.totalDuration = 0;
+      return;
+    }
+    
+    const lastNote = this.notes[this.notes.length - 1];
+    this.totalDuration = lastNote.time + lastNote.duration;
+  }
+
+  private updateActiveNotes() {
+    this._activeNotes = this.notes.filter(note => {
+      const noteStart = note.time;
+      const noteEnd = noteStart + note.duration;
+      return this.currentTime >= noteStart && this.currentTime <= noteEnd;
+    });
+
+    this._activeNotes.forEach(note => {
+      if (!this.hitWindows.has(note.pitch)) {
+        this.hitWindows.set(note.pitch, false);
+        
+        setTimeout(() => {
+          if (this.hitWindows.get(note.pitch) === false) {
+            this.noteHit.emit({ note: note.pitch, accuracy: -1 });
+            this.hitWindows.delete(note.pitch);
+          }
+        }, note.duration * 800);
+      }
+    });
+  }
+
+  checkUserNote(userNote: string): void {
+    for (const note of this._activeNotes) { // Используем приватное свойство
+      if (!this.hitWindows.get(note.pitch)) {
+        if (userNote === note.pitch) {
+          const noteTime = note.time;
+          const hitTime = this.currentTime;
+          const accuracy = this.calculateAccuracy(noteTime, hitTime);
+          
+          this.noteHit.emit({ note: note.pitch, accuracy });
+          this.hitWindows.set(note.pitch, true);
+          return;
+        }
+      }
+    }
+  }
+
+  private calculateAccuracy(noteTime: number, hitTime: number): number {
+    const diff = Math.abs(hitTime - noteTime);
+    if (diff < 0.05) return 100;
+    if (diff < 0.1) return 80;
+    if (diff < 0.15) return 60;
+    if (diff < 0.2) return 40;
+    return 20;
+  }
+}
+
+--- Файл: D:\NoteStrike\src\app\practice\practice.component.html ---
+
+<div class="practice-container">
+  <h1>Тренировка: {{ songData?.title || 'Выбранная песня' }}</h1>
+  
+  <div class="stats-display">
+    <div class="stat">
+      <span class="label">Счет:</span>
+      <span class="value">{{ score }}</span>
+    </div>
+    <div class="stat">
+      <span class="label">Комбо:</span>
+      <span class="value">{{ combo }}x (max {{ maxCombo }}x)</span>
+    </div>
+    <div class="stat">
+      <span class="label">Точность:</span>
+      <span class="value">{{ accuracy }}%</span>
+    </div>
+  </div>
+
+  <div class="note-display">
+    <div class="target-note">
+      <h3>Целевая нота</h3>
+      <div class="note" [class.active]="currentTargetNote">
+          {{ currentTargetNote || '--' }}
+      </div>
+    </div>
+    
+    <div class="user-note">
+      <h3>Ваша нота</h3>
+      <div class="note" [class.correct]="isNoteCorrect()">
+        {{ userPitch?.note || '--' }}
+      </div>
+      <div class="cents" *ngIf="userPitch?.cents !== undefined">
+        Отклонение: {{ userPitch?.cents }} центов
+      </div>
+    </div>
+  </div>
+
+  <app-note-track 
+    *ngIf="songData && isPlaying"
+    [notes]="songData.notes"
+    [bpm]="songData.bpm || 120"
+    (noteHit)="handleNoteHit($event)">
+  </app-note-track>
+
+  <div class="controls">
+    <button 
+      *ngIf="!isPlaying"
+      (click)="startPractice()"
+      class="start-button">
+      Начать тренировку
+    </button>
+    
+    <button 
+      *ngIf="isPlaying"
+      (click)="stopPractice()"
+      class="stop-button">
+      Завершить
+    </button>
+  </div>
+</div>
+
 --- Файл: D:\NoteStrike\src\app\practice\practice.component.scss ---
 
-.practice-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 2rem;
-    color: #333;
-  
-    h1 {
-      text-align: center;
-      color: #3f51b5;
-      margin-bottom: 2rem;
-    }
-  }
-  
-  .practice-content {
-    background: white;
-    border-radius: 12px;
-    padding: 2rem;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  }
-  
-  .note-display {
-    display: flex;
-    justify-content: space-around;
-    margin-bottom: 2rem;
-  
-    .target-note, .user-note {
-      text-align: center;
-      flex: 1;
-  
-      h3 {
-        color: #666;
-        margin-bottom: 1rem;
-      }
-  
-      .note {
-        font-size: 3rem;
-        font-weight: bold;
-        color: #3f51b5;
-        height: 4rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-  
-        &.correct {
-          color: #4caf50;
-        }
-      }
-  
-      .cents {
-        margin-top: 0.5rem;
-        font-size: 0.9rem;
-        color: #666;
-      }
-    }
-  }
-  
-  .accuracy-display {
-    margin: 2rem 0;
+.note-display {
+  display: flex;
+  justify-content: space-around;
+  margin: 20px 0;
+  padding: 20px;
+  background: #2d2d42;
+  border-radius: 8px;
+
+  .target-note, .user-note {
     text-align: center;
-  
-    .accuracy-value {
-      font-size: 1.2rem;
-      margin-bottom: 0.5rem;
+    flex: 1;
+
+    h3 {
+      color: #aaa;
+      margin-bottom: 10px;
     }
-  
-    .accuracy-bar {
-      height: 10px;
-      background: #eee;
-      border-radius: 5px;
-      overflow: hidden;
-  
-      .fill {
-        height: 100%;
-        background: linear-gradient(to right, #f44336, #ffeb3b, #4caf50);
-        transition: width 0.3s ease;
+
+    .note {
+      font-size: 2.5rem;
+      font-weight: bold;
+      height: 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px 0;
+      
+      &.active {
+        color: #4a6bff;
+      }
+      
+      &.correct {
+        color: #4caf50;
       }
     }
-  }
-  
-  .controls {
-    text-align: center;
-    margin-top: 2rem;
-  
-    button {
-      padding: 12px 24px;
-      background: #3f51b5;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background 0.3s;
-  
-      &:hover {
-        background: #303f9f;
-      }
-  
-      &.recording {
-        background: #f44336;
-  
-        &:hover {
-          background: #d32f2f;
-        }
-      }
+
+    .cents {
+      font-size: 0.9rem;
+      color: #aaa;
     }
   }
+}
+.note {
+  font-size: 1.5rem;
+  font-weight: bold;
+  
+  &.active {
+      color: #4caf50;
+  }
+}
 
 --- Файл: D:\NoteStrike\src\app\practice\practice.component.ts ---
 
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { AudioService, PitchDetectionResult } from '../services/audio.service';
+import { Song } from '../models/song.model';
+import { Subscription } from 'rxjs';
+import { CommonModule } from '@angular/common';
+import { NoteTrackComponent } from '../note-track/note-track.component';
+
+interface PracticeSession {
+  songId: string;
+  date: Date;
+  accuracy: number;
+  score: number;
+  maxCombo: number;
+}
 
 @Component({
   selector: 'app-practice',
   templateUrl: './practice.component.html',
-  styleUrls: ['./practice.component.scss']
+  styleUrls: ['./practice.component.scss'],
+  imports: [CommonModule, NoteTrackComponent]
 })
 export class PracticeComponent implements OnInit, OnDestroy {
-  isRecording = false;
+  @ViewChild(NoteTrackComponent) noteTrack!: NoteTrackComponent;
+
+  songData: Song | null = null;
   userPitch: PitchDetectionResult | null = null;
+  isRecording = false;
+  isPlaying = false;
+  
+  // Русские названия нот
+  NOTE_NAMES = ['до', 'до#', 'ре', 'ре#', 'ми', 'фа', 'фа#', 'соль', 'соль#', 'ля', 'ля#', 'си'];
+  NOTE_NAMES_FLAT = ['до', 'реб', 'ре', 'миб', 'ми', 'фа', 'сольб', 'соль', 'ляб', 'ля', 'сиб', 'си'];
+  
+  score = 0;
+  combo = 0;
+  maxCombo = 0;
+  accuracy = 0;
+  totalNotes = 0;
+  hits = 0;
+  currentTargetNote: string | null = null;
+  private audioContext: AudioContext;
+  private pitchSubscription!: Subscription;
+  private updateInterval: any;
+  audioBuffer: AudioBuffer | undefined;
 
-  constructor(private audioService: AudioService) {}
-  ngOnInit(): void {
-    throw new Error('Method not implemented.');
+  constructor(private audioService: AudioService) {
+    this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
   }
-
-  async toggleRecording() {
-    if (this.isRecording) {
-      this.audioService.stopPitchDetection();
-    } else {
-      try {
-        await this.audioService.startPitchDetection();
-        this.audioService.pitchDetection$.subscribe(pitch => {
-          this.userPitch = pitch;
-        });
-      } catch (error) {
-        console.error('Error starting recording:', error);
-        alert('Не удалось получить доступ к микрофону. Проверьте разрешения.');
+  ngOnInit(): void {
+    const historyState = history.state;
+    if (historyState?.songData) {
+      this.songData = historyState.songData;
+      this.totalNotes = this.songData?.notes?.length ?? 0;
+      
+      // Исправление для загрузки аудио из blob URL
+      if (historyState.songData.audioUrl) {
+        if (historyState.songData.audioUrl.startsWith('blob:')) {
+          this.audioBuffer = this.audioService.getStoredAudioBuffer(historyState.songData.id);
+        } else {
+          this.loadAudioBuffer(historyState.songData.audioUrl);
+        }
       }
     }
-    this.isRecording = !this.isRecording;
+  }
+
+  async startPractice() {
+    if (!this.songData || !this.audioBuffer) {
+      console.error('Audio buffer not loaded');
+      return;
+    }
+
+    try {
+      this.isPlaying = true;
+      this.resetStats();
+      
+      await this.audioService.playSong(this.audioBuffer);
+      
+      // Обновление целевой ноты по таймеру
+      this.updateInterval = setInterval(() => {
+        this.updateTargetNote();
+      }, 50); // Обновление каждые 50мс
+
+      // Запуск нотной дорожки
+      setTimeout(() => {
+        if (this.noteTrack) {
+          this.noteTrack.startPlayback();
+        }
+      }, 100);
+
+      // Обработка ввода с микрофона
+      await this.audioService.startPitchDetection();
+      this.pitchSubscription = this.audioService.pitchDetection$.subscribe(
+        pitch => {
+          this.userPitch = pitch;
+          this.checkUserPitch();
+        }
+      );
+
+      this.isRecording = true;
+    } catch (error) {
+      console.error('Error starting practice:', error);
+      this.stopPractice();
+    }
+  }
+  stopPractice() {
+    this.isPlaying = false;
+    this.isRecording = false;
+    
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+    }
+    
+    this.audioService.stopPitchDetection();
+    this.audioService.stopPlayback();
+    
+    if (this.pitchSubscription) {
+      this.pitchSubscription.unsubscribe();
+    }
+  }
+  private async loadAudioBuffer(audioUrl: string): Promise<void> {
+    try {
+      let arrayBuffer: ArrayBuffer;
+      
+      if (audioUrl.startsWith('blob:')) {
+        const response = await fetch(audioUrl);
+        if (!response.ok) throw new Error('Failed to fetch blob');
+        arrayBuffer = await response.arrayBuffer();
+      } else {
+        // Обработка других URL
+        const response = await fetch(audioUrl);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        arrayBuffer = await response.arrayBuffer();
+      }
+
+      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+        throw new Error('Received empty array buffer');
+      }
+
+      this.audioBuffer = await this.audioService.decodeAudioData(arrayBuffer);
+    } catch (error) {
+      console.error('Error loading audio:', error);
+      this.audioBuffer = undefined;
+    }
+  }
+  handleNoteHit(event: { note: string, accuracy: number }) {
+    if (event.accuracy === -1) {
+        // Пропущена нота
+        this.combo = 0;
+        this.score = Math.max(0, this.score - 5);
+        console.log(`Missed note: ${event.note}`);
+    } else {
+        // Попадание в ноту
+        this.hits++;
+        this.combo++;
+        this.maxCombo = Math.max(this.maxCombo, this.combo);
+        this.score += 10 + (this.combo * 2);
+        this.accuracy = Math.round((this.hits / this.totalNotes) * 100);
+        console.log(`Hit note: ${event.note} with accuracy ${event.accuracy}%`);
+    }
+  }
+  private checkUserPitch() {
+    if (!this.userPitch || !this.songData || !this.noteTrack) return;
+    
+    this.noteTrack.checkUserNote(this.userPitch.note);
+    
+    const activeNotes = this.noteTrack.activeNotes; // Теперь только чтение
+    this.currentTargetNote = activeNotes.length > 0 ? activeNotes[0].pitch : null;
+  }
+  
+  isNoteCorrect(): boolean {
+    return !!this.userPitch && !!this.currentTargetNote && 
+           this.userPitch.note === this.currentTargetNote;
+  }
+  private resetStats() {
+    this.score = 100;
+    this.combo = 0;
+    this.maxCombo = 0;
+    this.accuracy = 0;
+    this.hits = 0;
+  }
+  private getNoteName(note: string): string {
+    const match = note.match(/^([A-Ga-g])([#b]?)(\d+)$/);
+    if (!match) return note;
+    
+    const [, letter, accidental, octave] = match;
+    const index = 'CDEFGABCDEFGAB'.indexOf(letter.toUpperCase());
+    
+    let noteName;
+    if (accidental === 'b') {
+      noteName = this.NOTE_NAMES_FLAT[index];
+    } else {
+      noteName = this.NOTE_NAMES[index];
+    }
+    
+    return `${noteName} ${octave} октавы`;
+  }
+
+  private updateTargetNote() {
+    if (!this.songData || !this.noteTrack) return;
+    
+    const currentTime = this.noteTrack.getCurrentTime();
+    const currentNote = this.songData.notes.find(note => 
+      note.time <= currentTime && currentTime <= note.time + note.duration
+    );
+    
+    this.currentTargetNote = currentNote ? this.getNoteName(currentNote.pitch) : null;
+  }
+  private saveSession() {
+    if (!this.songData) return;
+
+    const session: PracticeSession = {
+      songId: this.songData.id,
+      date: new Date(),
+      accuracy: this.accuracy,
+      score: this.score,
+      maxCombo: this.maxCombo
+    };
+
+    const sessions = JSON.parse(localStorage.getItem('practiceSessions') || '[]');
+    sessions.push(session);
+    localStorage.setItem('practiceSessions', JSON.stringify(sessions));
   }
 
   ngOnDestroy() {
-    this.audioService.stopPitchDetection();
+    this.stopPractice();
   }
 }
 
@@ -671,151 +1318,285 @@ export class PracticeComponent implements OnInit, OnDestroy {
 
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
+import { Note } from '../models/song.model';
 
-@Injectable({
-  providedIn: 'root'
-})
-export class AudioService {
-  private audioContext: AudioContext;
-  private analyser: AnalyserNode;
-  private microphone: MediaStreamAudioSourceNode | null = null;
-  private scriptProcessor: ScriptProcessorNode | null = null;
-  private pitchDetectionSubject = new Subject<PitchDetectionResult>();
-  private isRecording = false;
-
-  constructor() {
-    this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    this.analyser = this.audioContext.createAnalyser();
-    this.analyser.fftSize = 4096;
-  }
-
-  async startPitchDetection(): Promise<void> {
-    if (this.isRecording) return;
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      this.microphone = this.audioContext.createMediaStreamSource(stream);
-      this.microphone.connect(this.analyser);
-
-      this.scriptProcessor = this.audioContext.createScriptProcessor(4096, 1, 1);
-      this.analyser.connect(this.scriptProcessor);
-      this.scriptProcessor.connect(this.audioContext.destination);
-
-      this.scriptProcessor.onaudioprocess = () => {
-        if (!this.isRecording) return;
-        
-        const buffer = new Float32Array(this.analyser.fftSize);
-        this.analyser.getFloatTimeDomainData(buffer);
-        const result = this.detectPitch(buffer);
-        this.pitchDetectionSubject.next(result);
-      };
-
-      this.isRecording = true;
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-      throw error;
-    }
-  }
-
-  stopPitchDetection(): void {
-    if (!this.isRecording) return;
-    
-    this.scriptProcessor?.disconnect();
-    this.microphone?.disconnect();
-    this.scriptProcessor = null;
-    this.microphone = null;
-    this.isRecording = false;
-  }
-
-  private detectPitch(buffer: Float32Array): PitchDetectionResult {
-    const frequency = this.getDominantFrequency(buffer);
-    if (frequency <= 0) {
-      return { note: '', cents: 0, frequency: 0 };
-    }
-    return this.frequencyToNote(frequency);
-  }
-
-  private getDominantFrequency(buffer: Float32Array): number {
-    // Реализация анализа частоты
-    const autoCorrelate = (buffer: Float32Array, sampleRate: number) => {
-      // Улучшенный алгоритм авто-корреляции
-      const SIZE = buffer.length;
-      const MAX_SAMPLES = Math.floor(SIZE / 2);
-      let bestOffset = -1;
-      let bestCorrelation = 0;
-      let rms = 0;
-      let foundGoodCorrelation = false;
-
-      for (let i = 0; i < SIZE; i++) {
-        const val = buffer[i];
-        rms += val * val;
-      }
-      rms = Math.sqrt(rms / SIZE);
-      if (rms < 0.01) return -1;
-
-      let lastCorrelation = 1;
-      for (let offset = 0; offset < MAX_SAMPLES; offset++) {
-        let correlation = 0;
-
-        for (let i = 0; i < MAX_SAMPLES; i++) {
-          correlation += Math.abs(buffer[i] - buffer[i + offset]);
-        }
-        correlation = 1 - correlation / MAX_SAMPLES;
-        if (correlation > 0.9 && correlation > lastCorrelation) {
-          foundGoodCorrelation = true;
-          if (correlation > bestCorrelation) {
-            bestCorrelation = correlation;
-            bestOffset = offset;
-          }
-        } else if (foundGoodCorrelation) {
-          const shift = (bestCorrelation - correlation) / correlation;
-          return sampleRate / (bestOffset + 8 * shift);
-        }
-        lastCorrelation = correlation;
-      }
-      if (bestCorrelation > 0.01) {
-        return sampleRate / bestOffset;
-      }
-      return -1;
-    };
-
-    return autoCorrelate(buffer, this.audioContext.sampleRate);
-  }
-
-  private frequencyToNote(frequency: number): PitchDetectionResult {
-    const A4 = 440;
-    const C0 = A4 * Math.pow(2, -4.75);
-    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-  
-    if (frequency <= 0) {
-      return { note: '', cents: 0, frequency: 0 };
-    }
-  
-    const halfSteps = Math.round(12 * Math.log2(frequency / C0));
-    const octave = Math.floor(halfSteps / 12);
-    const noteIndex = halfSteps % 12;
-    const note = noteNames[noteIndex] + octave;
-  
-    // Calculate cents deviation
-    const expectedFrequency = C0 * Math.pow(2, halfSteps / 12);
-    const cents = Math.floor(1200 * Math.log2(frequency / expectedFrequency));
-  
-    return {
-      note,
-      cents,
-      frequency // Добавляем frequency в возвращаемый объект
-    };
-  }
-
-  get pitchDetection$() {
-    return this.pitchDetectionSubject.asObservable();
-  }
+export interface AudioAnalysisResult {
+  bpm: number;
+  key: string;
+  notes: Note[];
+  title: string;
 }
 
 export interface PitchDetectionResult {
   note: string;
   cents: number;
   frequency: number;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AudioService {
+  private workletNode: AudioWorkletNode | null = null;
+  private sourceNode: MediaStreamAudioSourceNode | null = null;
+  private stream: MediaStream | null = null;
+  private pitchDetectionSubject = new Subject<PitchDetectionResult>();
+  private isRecording = false;
+  private audioBufferSource: AudioBufferSourceNode | null = null;
+  private audioContext: AudioContext;
+
+  constructor() {
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  }
+  async initializeWorklet(): Promise<void> {
+    try {
+        // Путь должен соответствовать месту, куда копируется файл при сборке
+        const workletUrl = 'assets/pitch-processor.worklet.js';
+        
+        // Альтернативный вариант для dev-сервера
+        // const workletUrl = '/assets/pitch-processor.worklet.js';
+        
+        await this.audioContext.audioWorklet.addModule(workletUrl);
+    } catch (error) {
+        console.error('Error loading worklet:', error);
+        throw error;
+    }
+  }
+  async startPitchDetection(): Promise<void> {
+    if (this.isRecording) return;
+    
+    try {
+      await this.initializeWorklet();
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.sourceNode = this.audioContext.createMediaStreamSource(this.stream);
+      
+      this.workletNode = new AudioWorkletNode(this.audioContext, 'pitch-processor');
+      this.sourceNode.connect(this.workletNode);
+      
+      this.workletNode.port.onmessage = (event) => {
+        this.pitchDetectionSubject.next(event.data);
+      };
+
+      this.isRecording = true;
+    } catch (error) {
+      console.error('Error starting pitch detection:', error);
+      throw error;
+    }
+  }
+
+  async playSong(buffer: AudioBuffer): Promise<void> {
+    this.stopPlayback();
+    
+    this.audioBufferSource = this.audioContext.createBufferSource();
+    this.audioBufferSource.buffer = buffer;
+    this.audioBufferSource.connect(this.audioContext.destination);
+    this.audioBufferSource.start();
+  }
+
+  stopPlayback(): void {
+    if (this.audioBufferSource) {
+      this.audioBufferSource.stop();
+      this.audioBufferSource = null;
+    }
+  }
+
+  stopPitchDetection(): void {
+    if (!this.isRecording) return;
+    
+    this.workletNode?.disconnect();
+    this.sourceNode?.disconnect();
+    this.stream?.getTracks().forEach(track => track.stop());
+    
+    this.workletNode = null;
+    this.sourceNode = null;
+    this.stream = null;
+    this.isRecording = false;
+  }
+
+  async decodeAudioFile(file: File): Promise<AudioBuffer> {
+    const arrayBuffer = await file.arrayBuffer();
+    return this.decodeAudioData(arrayBuffer);
+  }
+
+    async decodeAudioData(arrayBuffer: ArrayBuffer): Promise<AudioBuffer> {
+      if (!this.audioContext) {
+          this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      return await this.audioContext.decodeAudioData(arrayBuffer);
+  }
+
+  async analyzeAudioBuffer(buffer: AudioBuffer, fileName: string): Promise<AudioAnalysisResult> {
+    const bpm = await this.detectBPM(buffer);
+    const notes = await this.detectNotes(buffer);
+    const key = this.detectKey(notes);
+
+    return {
+      bpm: Math.round(bpm),
+      key,
+      notes,
+      title: fileName.replace(/\.[^/.]+$/, "")
+    };
+  }
+
+  private async detectBPM(buffer: AudioBuffer): Promise<number> {
+    const data = buffer.getChannelData(0);
+    const peaks = this.findPeaks(data);
+    return peaks.length > 10 ? Math.round(60 / this.averageInterval(peaks, buffer.sampleRate)) : 120;
+  }
+
+  private findPeaks(data: Float32Array, threshold = 0.3): number[] {
+    const peaks = [];
+    let lastVal = data[0];
+    let ascending = true;
+
+    for (let i = 1; i < data.length; i++) {
+      if (ascending) {
+        if (data[i] < lastVal) {
+          if (lastVal >= threshold) {
+            peaks.push(i - 1);
+          }
+          ascending = false;
+        }
+      } else {
+        if (data[i] > lastVal) {
+          ascending = true;
+        }
+      }
+      lastVal = data[i];
+    }
+    return peaks;
+  }
+
+  private averageInterval(peaks: number[], sampleRate: number): number {
+    if (peaks.length < 2) return 0;
+    let sum = 0;
+    for (let i = 1; i < peaks.length; i++) {
+      sum += peaks[i] - peaks[i - 1];
+    }
+    return sum / (peaks.length - 1) / sampleRate;
+  }
+
+  private async detectNotes(buffer: AudioBuffer): Promise<Note[]> {
+    const notes: Note[] = [];
+    const frameSize = 4096;
+    const frameTime = frameSize / buffer.sampleRate;
+    
+    for (let i = 0; i < buffer.length; i += frameSize) {
+      const segment = buffer.getChannelData(0).slice(i, i + frameSize);
+      const frequency = this.getDominantFrequency(segment, buffer.sampleRate);
+      if (frequency > 0) {
+        const result = this.frequencyToNote(frequency);
+        notes.push({
+          pitch: result.note,
+          time: i / buffer.sampleRate,
+          duration: frameTime
+        });
+      }
+    }
+
+    return this.mergeSimilarNotes(notes);
+  }
+
+  private mergeSimilarNotes(notes: Note[]): Note[] {
+    const merged: Note[] = [];
+    const threshold = 0.05; // 50ms threshold for merging
+    
+    for (let i = 0; i < notes.length; i++) {
+      if (i > 0 && 
+          notes[i].pitch === notes[i-1].pitch && 
+          (notes[i].time - (merged[merged.length-1].time + merged[merged.length-1].duration)) < threshold) {
+        merged[merged.length-1].duration += notes[i].duration;
+      } else {
+        merged.push({...notes[i]});
+      }
+    }
+    
+    return merged;
+  }
+
+  private getDominantFrequency(buf: Float32Array, sampleRate: number): number {
+    const SIZE = buf.length;
+    const MAX_SAMPLES = Math.floor(SIZE / 2);
+    let bestOffset = -1;
+    let bestCorrelation = 0;
+    let rms = 0;
+    let foundGoodCorrelation = false;
+
+    for (let i = 0; i < SIZE; i++) {
+      const val = buf[i];
+      rms += val * val;
+    }
+    rms = Math.sqrt(rms / SIZE);
+    if (rms < 0.01) return -1;
+
+    let lastCorrelation = 1;
+    for (let offset = 0; offset < MAX_SAMPLES; offset++) {
+      let correlation = 0;
+
+      for (let i = 0; i < MAX_SAMPLES; i++) {
+        correlation += Math.abs(buf[i] - buf[i + offset]);
+      }
+      correlation = 1 - (correlation / MAX_SAMPLES);
+      if (correlation > 0.9 && correlation > lastCorrelation) {
+        foundGoodCorrelation = true;
+        if (correlation > bestCorrelation) {
+          bestCorrelation = correlation;
+          bestOffset = offset;
+        }
+      } else if (foundGoodCorrelation) {
+        const shift = (bestCorrelation - correlation) / correlation;
+        return sampleRate / (bestOffset + 8 * shift);
+      }
+      lastCorrelation = correlation;
+    }
+    if (bestCorrelation > 0.01) {
+      return sampleRate / bestOffset;
+    }
+    return -1;
+  }
+  private audioBuffers = new Map<string, AudioBuffer>();
+
+  storeAudioBuffer(id: string, buffer: AudioBuffer): void {
+      this.audioBuffers.set(id, buffer);
+  }
+  
+  getStoredAudioBuffer(id: string): AudioBuffer | undefined {
+      return this.audioBuffers.get(id);
+  }
+  
+  clearStoredAudioBuffer(id: string): void {
+      this.audioBuffers.delete(id);
+  }
+  private frequencyToNote(freq: number): { note: string; cents: number } {
+    const A4 = 440;
+    const C0 = A4 * Math.pow(2, -4.75);
+    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+    const halfSteps = Math.round(12 * Math.log2(freq / C0));
+    const octave = Math.floor(halfSteps / 12);
+    const noteIndex = halfSteps % 12;
+    const note = noteNames[noteIndex] + octave;
+
+    const expectedFreq = C0 * Math.pow(2, halfSteps / 12);
+    const cents = Math.floor(1200 * Math.log2(freq / expectedFreq));
+
+    return { note, cents };
+  }
+
+  private detectKey(notes: Note[]): string {
+    const noteCounts: Record<string, number> = {};
+    notes.forEach(note => {
+      const baseNote = note.pitch.replace(/[0-9]/g, '');
+      noteCounts[baseNote] = (noteCounts[baseNote] || 0) + 1;
+    });
+
+    const sortedNotes = Object.entries(noteCounts).sort((a, b) => b[1] - a[1]);
+    return sortedNotes.length > 0 ? `${sortedNotes[0][0]} Major` : 'C Major';
+  }
+
+  get pitchDetection$() {
+    return this.pitchDetectionSubject.asObservable();
+  }
 }
 
 --- Файл: D:\NoteStrike\src\app\services\song.service.ts ---
@@ -943,10 +1724,11 @@ export class SongService {
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 
-interface Session {
+interface PracticeSession {
+  songId: string;
   date: string;
-  songTitle: string;
   accuracy: number;
+  songTitle?: string;
 }
 
 @Component({
@@ -956,17 +1738,40 @@ interface Session {
   imports: [CommonModule]
 })
 export class StatsComponent {
-  sessions: Session[] = [
-    { date: '2023-10-01', songTitle: 'Imagine', accuracy: 78 },
-    { date: '2023-10-02', songTitle: 'Bohemian Rhapsody', accuracy: 65 },
-    { date: '2023-10-03', songTitle: 'Yesterday', accuracy: 82 },
-  ];
+  sessions: PracticeSession[] = [];
+  averageAccuracy = 0;
 
-  averageAccuracy = this.calculateAverage();
+  constructor() {
+    this.loadSessions();
+  }
 
-  calculateAverage(): number {
+  private loadSessions(): void {
+    const sessionsData = localStorage.getItem('practiceSessions');
+    const songsData = localStorage.getItem('songs');
+    
+    const sessions: PracticeSession[] = sessionsData ? JSON.parse(sessionsData) : [];
+    const songs: any[] = songsData ? JSON.parse(songsData) : [];
+
+    this.sessions = sessions.map(session => {
+      const song = songs.find(s => s.id === session.songId);
+      return {
+        ...session,
+        date: new Date(session.date).toLocaleDateString(),
+        songTitle: song?.title || 'Unknown Song'
+      };
+    }).slice(0, 10);
+
+    this.calculateAverage();
+  }
+
+  private calculateAverage(): void {
+    if (this.sessions.length === 0) {
+      this.averageAccuracy = 0;
+      return;
+    }
+
     const sum = this.sessions.reduce((acc, session) => acc + session.accuracy, 0);
-    return Math.round(sum / this.sessions.length);
+    this.averageAccuracy = Math.round(sum / this.sessions.length);
   }
 }
 
@@ -1046,9 +1851,14 @@ export class StatsComponent {
             <label>Обнаруженные ноты:</label>
             <div class="notes-list">
               @for (note of analysisResult.notes; track note) {
-                <span class="note-tag">{{ note }}</span>
+                  <div class="note">
+                      {{ note.pitch }} 
+                      @if (note.time !== undefined) {
+                          (время: {{ note.time | number:'1.2-2' }} сек)
+                      }
+                  </div>
               }
-            </div>
+          </div>
           </div>
         </div>
   
@@ -1216,12 +2026,8 @@ export class StatsComponent {
 
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
-import { AudioService, AudioAnalysisResult } from '../services/audio.service';
+import { AudioService } from '../services/audio.service';
 import { CommonModule } from '@angular/common';
-
-interface UploadAnalysisResult extends AudioAnalysisResult {
-  title: string;
-}
 
 @Component({
   selector: 'app-upload',
@@ -1232,59 +2038,82 @@ interface UploadAnalysisResult extends AudioAnalysisResult {
 export class UploadComponent {
   selectedFile: File | null = null;
   isAnalyzing = false;
-  analysisResult: UploadAnalysisResult | null = null;
+  analysisResult: any = null;
   errorMessage: string | null = null;
+  audioBuffer: AudioBuffer | null = null;
 
   constructor(
     private audioService: AudioService,
     private router: Router
   ) {}
 
-  onFileSelected(event: Event): void {
+  async onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       this.selectedFile = input.files[0];
       this.errorMessage = null;
+      this.analysisResult = null;
     }
   }
 
-  async analyzeSong(): Promise<void> {
+  async analyzeSong() {
     if (!this.selectedFile) {
-      this.errorMessage = 'Пожалуйста, выберите файл';
+      this.errorMessage = 'Please select a file';
       return;
     }
 
     this.isAnalyzing = true;
     this.errorMessage = null;
 
-    try {
+    if (!this.selectedFile) {
+      throw new Error('No file selected');
+  }
+  
+  try {
       const buffer = await this.audioService.decodeAudioFile(this.selectedFile);
-      const analysisResult = await this.audioService.analyzeAudioBuffer(buffer);
-      
-      this.analysisResult = {
-        ...analysisResult,
-        title: this.selectedFile.name.replace(/\.[^/.]+$/, "")
-      };
-    } catch (error) {
-      console.error('Analysis error:', error);
-      this.errorMessage = 'Ошибка при анализе файла. Пожалуйста, попробуйте другой файл.';
-    } finally {
+      if (!buffer) {
+          throw new Error('Failed to decode audio file');
+      }
+      this.audioBuffer = buffer;
+      this.analysisResult = await this.audioService.analyzeAudioBuffer(buffer, this.selectedFile.name);
+  } catch (error) {
+      console.error('Error processing audio file:', error);
+      this.audioBuffer = null;
+      this.analysisResult = null;
+      throw error; // или обработка ошибки по-другому
+  } finally {
       this.isAnalyzing = false;
     }
   }
 
+  private audioStorage: {[key: string]: AudioBuffer} = {};
+
   startPractice(): void {
-    if (this.analysisResult) {
-      this.router.navigate(['/practice'], { 
-        state: { 
-          songData: {
+    // Проверяем, что анализ завершен и аудио буфер доступен
+    if (this.analysisResult && this.audioBuffer && this.selectedFile) {
+        // Создаем уникальный ID для песни
+        const songId = Date.now().toString();
+        
+        // Сохраняем аудио буфер в сервисе
+        this.audioService.storeAudioBuffer(songId, this.audioBuffer);
+        
+        // Формируем полные данные песни для передачи на страницу практики
+        const songData = {
+            id: songId,
             title: this.analysisResult.title,
-            notes: this.analysisResult.notes,
+            artist: this.analysisResult.artist || 'Неизвестный исполнитель',
             bpm: this.analysisResult.bpm,
-            key: this.analysisResult.key
-          }
-        }
-      });
+            key: this.analysisResult.key,
+            notes: this.analysisResult.notes,
+            audioUrl: URL.createObjectURL(this.selectedFile) // Создаем временную ссылку на файл
+        };
+        
+        // Переходим на страницу практики с передачей данных
+        this.router.navigate(['/practice'], { 
+            state: { songData }
+        });
+    } else {
+        console.error('Не удалось начать практику: отсутствуют данные анализа или аудио файл');
     }
   }
 }
